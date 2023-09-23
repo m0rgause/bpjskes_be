@@ -8,9 +8,6 @@ const getAll = async (req, res) => {
     const title = req.query.title === "" ? null : req.query.title;
     const pid = req.query.pid ?? null;
     const id = req.params.id ?? [];
-    console.log(id);
-    // pid can be 1 or like this 1d3881de-29d1-4e97-a9fb-fd7aa058d974
-
     let query = ` select id, nama AS title, icon, path AS url, length(urutan_path)-2 AS pos, REPLACE(urutan_path, ',', '-') as urutan_path from aut_access `;
 
     if (title) {
@@ -32,18 +29,20 @@ const getAll = async (req, res) => {
     if (!access) {
       return res.status(404).json({
         code: 404,
-        message: "Not Found",
+        data: null,
+        error: { message: "Not Found" },
       });
     }
     res.status(200).json({
       code: 200,
-      message: "Success",
-      result: access,
+      data: access,
+      error: null,
     });
   } catch (error) {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -54,7 +53,8 @@ const getOne = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     let options = {
@@ -65,18 +65,21 @@ const getOne = async (req, res) => {
     if (!access) {
       return res.status(404).json({
         code: 404,
-        message: "Not Found",
+        data: null,
+        error: { message: "Not Found" },
       });
     }
     res.status(200).json({
       code: 200,
       message: "Success",
-      result: access,
+      data: access,
+      error: null,
     });
   } catch (error) {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -135,6 +138,7 @@ const add = async (req, res) => {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -142,7 +146,6 @@ const add = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id, urutan, pid, nama, path, icon } = req.body;
-
     const dataOld = await Access.findOne({ where: { id } });
 
     // Cek jika perubahan memengaruhi urutan atau parent
@@ -157,7 +160,8 @@ const update = async (req, res) => {
       if (count > 0) {
         return res.status(400).json({
           code: 400,
-          message: "Bad Request",
+          error: { message: "Bad Request" },
+          data: null,
         });
       }
     }
@@ -210,7 +214,8 @@ const update = async (req, res) => {
 
       return res.status(200).json({
         code: 200,
-        message: "Success",
+        data: null,
+        error: null,
       });
     } catch (error) {
       await transaction.rollback();
@@ -220,6 +225,7 @@ const update = async (req, res) => {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -250,7 +256,8 @@ const remove = async (req, res) => {
 
       return res.status(200).json({
         code: 200,
-        message: "Success",
+        data: null,
+        error: null,
       });
     } catch (error) {
       await transaction.rollback();
@@ -260,6 +267,7 @@ const remove = async (req, res) => {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };

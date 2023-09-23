@@ -1,8 +1,6 @@
 const db = require("../models");
 const Group = db.group;
-const Access = db.access;
-const { QueryTypes, Op } = require("sequelize");
-const sequelize = db.sequelize;
+const { Op } = require("sequelize");
 
 const getAll = async (req, res) => {
   try {
@@ -27,13 +25,14 @@ const getAll = async (req, res) => {
 
     res.status(200).json({
       code: 200,
-      message: "Success",
-      result: group,
+      data: group,
+      error: null,
     });
   } catch (error) {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -44,7 +43,8 @@ const getOne = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     let options = {
@@ -57,18 +57,20 @@ const getOne = async (req, res) => {
     if (!group) {
       return res.status(404).json({
         code: 404,
-        message: "Not Found",
+        data: null,
+        error: { message: "Not Found" },
       });
     }
     return res.status(200).json({
       code: 200,
-      message: "Success",
-      result: group,
+      data: group,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -82,13 +84,14 @@ const getSelect = async (req, res) => {
 
     return res.status(200).json({
       code: 200,
-      message: "Success",
-      result: group,
+      data: group,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -100,7 +103,8 @@ const update = async (req, res) => {
     if (!id || !nama || !landing) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     await Group.update({ nama: nama, landing: landing }, { where: { id: id } })
@@ -108,7 +112,8 @@ const update = async (req, res) => {
         if (num == 1) {
           res.status(200).json({
             code: 200,
-            message: "Success",
+            data: null,
+            error: null,
           });
         }
       })
@@ -117,11 +122,13 @@ const update = async (req, res) => {
           res.status(500).json({
             code: 500,
             error: { message: "Not Unique" },
+            data: null,
           });
         } else {
           res.status(500).json({
             code: 500,
             error: { message: err.message },
+            data: null,
           });
         }
       });
@@ -129,6 +136,7 @@ const update = async (req, res) => {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -139,7 +147,8 @@ const add = async (req, res) => {
     if (!nama || !landing) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     const [group, created] = await Group.findOrCreate({
@@ -150,19 +159,21 @@ const add = async (req, res) => {
     if (created) {
       return res.status(201).json({
         code: 201,
-        message: "Created",
-        result: group,
+        data: group,
+        error: null,
       });
     } else {
       return res.status(409).json({
         code: 409,
-        message: "Conflict",
+        data: null,
+        error: { message: "Already Exists" },
       });
     }
   } catch (error) {
     res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -173,7 +184,8 @@ const remove = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     await Group.destroy({ where: { id: id } })
@@ -181,7 +193,8 @@ const remove = async (req, res) => {
         if (num == 1) {
           res.status(200).json({
             code: 200,
-            message: "Success",
+            data: null,
+            error: null,
           });
         }
       })
@@ -189,12 +202,14 @@ const remove = async (req, res) => {
         res.status(500).json({
           code: 500,
           error: { message: err.message },
+          data: null,
         });
       });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };

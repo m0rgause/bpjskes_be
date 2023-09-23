@@ -31,12 +31,14 @@ const getAll = async (req, res) => {
     const users = await User.findAndCountAll(options);
     return res.status(200).json({
       code: 200,
-      result: users,
+      data: users,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       message: error.message,
+      data: null,
     });
   }
 };
@@ -58,6 +60,7 @@ const signIn = async (req, res) => {
       return res.status(404).json({
         code: 404,
         error: { message: "User not found" },
+        data: null,
       });
     }
 
@@ -67,7 +70,8 @@ const signIn = async (req, res) => {
     if (!isMatch) {
       return res.status(200).json({
         code: 401,
-        message: "Wrong password",
+        data: null,
+        error: { message: "Invalid password" },
       });
     }
 
@@ -76,6 +80,7 @@ const signIn = async (req, res) => {
       return res.status(200).json({
         code: 401,
         error: { message: "User is not active" },
+        data: null,
       });
     }
 
@@ -106,15 +111,19 @@ const signIn = async (req, res) => {
 
     res.status(200).json({
       code: 200,
-      token,
-      landing: !groupAccess ? user.aut_group.landing : null,
-      actualLanding: user.aut_group.landing,
-      user: tokenPayload,
+      data: {
+        token: token,
+        landing: !groupAccess ? user.aut_group.landing : null,
+        actualLanding: user.aut_group.landing,
+        user: tokenPayload,
+      },
+      error: null,
     });
   } catch (error) {
     res.status(500).json({
       code: 500,
-      message: error.message,
+      data: null,
+      error: { message: error.message },
     });
   }
 };
@@ -137,31 +146,35 @@ const signUp = async (req, res) => {
     if (!created) {
       return res.status(409).json({
         code: 409,
-        message: "User already exist",
+        data: null,
+        error: { message: "User already exist" },
       });
     }
 
     return res.status(200).json({
       code: 200,
-      message: "User created",
-      result: user,
+      data: user,
+      error: null,
     });
   } catch (error) {
     if (error.name === "SequelizeValidationError") {
       return res.status(400).json({
         code: 400,
-        message: error.message,
+        data: null,
+        error: { message: error.message },
       });
     } else if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({
         code: 409,
-        message: "User already exist",
+        data: null,
+        error: { message: "User already exist" },
       });
     }
 
     return res.status(500).json({
       code: 500,
-      message: error.message,
+      data: null,
+      error: { message: error.message },
     });
   }
 };
@@ -386,18 +399,21 @@ const getMenu = async (req, res) => {
     if (aut_user === null) {
       return res.status(200).json({
         code: 401,
-        message: "Unauthorized",
+        error: "Unauthorized",
+        data: null,
       });
     }
 
     return res.status(200).json({
       code: 200,
-      result: aut_user,
+      error: null,
+      data: aut_user,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
-      message: error.message,
+      error: error.message,
+      data: null,
     });
   }
 };
@@ -408,7 +424,8 @@ const getOne = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     const user = await User.findOne({
@@ -418,18 +435,20 @@ const getOne = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     return res.status(200).json({
       code: 200,
-      message: "Success",
-      result: user,
+      data: user,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -442,7 +461,8 @@ const updateGroup = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     const user = await User.update(
@@ -457,14 +477,15 @@ const updateGroup = async (req, res) => {
 
     return res.status(200).json({
       code: 200,
-      message: "Success",
-      result: user,
+      data: user,
+      error: null,
     });
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({
         code: 409,
-        message: "User already exist",
+        error: { message: "Not Unique" },
+        data: null,
       });
     }
     return res.status(500).json({
@@ -480,14 +501,16 @@ const remove = async (req, res) => {
     if (!id) {
       return res.status(400).json({
         code: 400,
-        message: "Bad Request",
+        data: null,
+        error: { message: "Bad Request" },
       });
     }
     await User.destroy({ where: { id: id } }).then((num) => {
       if (num == 1) {
         res.status(200).json({
           code: 200,
-          message: "Success",
+          data: null,
+          error: null,
         });
       }
     });
@@ -495,6 +518,7 @@ const remove = async (req, res) => {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };

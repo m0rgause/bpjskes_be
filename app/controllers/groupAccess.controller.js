@@ -2,8 +2,6 @@ const db = require("../models");
 const groupAccess = db.groupAccess;
 const Access = db.access;
 const Group = db.group;
-const { QueryTypes, Op } = require("sequelize");
-const sequelize = db.sequelize;
 
 const getAll = async (req, res) => {
   try {
@@ -22,13 +20,14 @@ const getAll = async (req, res) => {
 
     res.status(200).json({
       code: 200,
-      message: "Success",
-      result: ga,
+      data: ga,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -45,13 +44,14 @@ const add = async (req, res) => {
 
     res.status(200).json({
       code: 200,
-      message: "Success",
-      result: ga,
+      data: ga,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
@@ -120,13 +120,14 @@ const onUpdate = async (req, res) => {
 
     res.status(200).json({
       code: 200,
-      message: "Success",
-      result: accList,
+      data: null,
+      error: null,
     });
   } catch (error) {
     return res.status(500).json({
       code: 500,
       error: { message: error.message },
+      data: null,
     });
   }
 };
