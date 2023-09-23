@@ -58,7 +58,11 @@ const add = async (req, res) => {
 
 const onUpdate = async (req, res) => {
   try {
-    const { groupId, treeSlc } = req.body;
+    let { groupId, treeSlc } = req.body;
+    // check if treeSlc is undefined
+    if (!treeSlc) {
+      treeSlc = [];
+    }
 
     await groupAccess.destroy({
       where: {

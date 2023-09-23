@@ -237,8 +237,10 @@ const remove = async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-      // Delete data utama
+      //   // Delete data utama
       await Access.destroy({ where: { id }, transaction });
+      // Delete data child
+      await Access.destroy({ where: { pid: id }, transaction });
 
       // Update urutan_path untuk child nodes
       const child = await Access.findAll({ where: { pid: id }, transaction });
