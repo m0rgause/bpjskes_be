@@ -101,6 +101,7 @@ const onUpdate = async (req, res) => {
         key: row.path,
         label: row.nama,
         icon: row.icon,
+        urutan: row.urutan,
       };
 
       if (children.length > 0) {
@@ -109,6 +110,7 @@ const onUpdate = async (req, res) => {
             key: child.path,
             label: child.nama,
             icon: child.icon,
+            urutan: child.urutan,
           };
         });
       }
