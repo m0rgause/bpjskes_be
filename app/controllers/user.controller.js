@@ -25,7 +25,7 @@ const getAll = async (req, res) => {
     };
 
     if (email) {
-      options.where.email = { [db.Sequelize.Op.like]: `%${email}%` };
+      options.where.email = { [db.Sequelize.Op.iLike]: `%${email}%` };
     }
 
     const users = await User.findAndCountAll(options);
