@@ -1,16 +1,12 @@
 const express = require("express");
 const app = express();
-// routes
-const accessRoutes = require("./access.routes");
-const groupRoutes = require("./group.routes");
-const groupAccessRoutes = require("./group_access.routes");
-const userRoutes = require("./user.routes");
-const twrrCoaRoutes = require("./twrr_coa.routes");
 
-app.use("/access", accessRoutes);
-app.use("/group", groupRoutes);
-app.use("/group_access", groupAccessRoutes);
-app.use("/user", userRoutes);
-app.use("/twrr_coa", twrrCoaRoutes);
-
+app.use("/access", require("./access.routes"));
+app.use("/group", require("./group.routes"));
+app.use("/group_access", require("./group_access.routes"));
+app.use("/user", require("./user.routes"));
+app.use("/twrr_coa", require("./twrr_coa.routes"));
+app.use("/issuer", require("./issuer.routes"));
+app.use("/rating", require("./rating.routes"));
+app.use("/master", require("./master.routes"));
 module.exports = app;

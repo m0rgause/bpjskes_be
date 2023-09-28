@@ -13,7 +13,7 @@ db.twrrCoa = require("./twrr_coa.model")(config, Sequelize);
 db.tenor = require("./tenor.model")(config, Sequelize);
 db.rating = require("./rating.model")(config, Sequelize);
 db.issuer = require("./issuer.model")(config, Sequelize);
-db.pengeloalaan = require("./pengelolaan.model")(config, Sequelize);
+db.pengelolaan = require("./pengelolaan.model")(config, Sequelize);
 db.kepemilikan = require("./kepemilikan.model")(config, Sequelize);
 db.kbmi = require("./kbmi.model")(config, Sequelize);
 
