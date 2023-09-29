@@ -16,5 +16,7 @@ db.issuer = require("./issuer.model")(config, Sequelize);
 db.pengelolaan = require("./pengelolaan.model")(config, Sequelize);
 db.kepemilikan = require("./kepemilikan.model")(config, Sequelize);
 db.kbmi = require("./kbmi.model")(config, Sequelize);
+db.trxTwrrFile = require("./trxTwrrFile.model")(config, Sequelize);
+db.trxTwrr = require("./trxTwrr.model.js")(config, Sequelize);
 
 module.exports = db;
