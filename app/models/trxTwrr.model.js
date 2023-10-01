@@ -123,7 +123,6 @@ module.exports = (sequelize, Sequelize) => {
 
   // Define foreign key relationship
   const TrxTwrrFile = require("./trxTwrrFile.model")(sequelize, Sequelize); // Adjust this to the correct model and path
-
   TrxTwrr.belongsTo(TrxTwrrFile, { foreignKey: "trx_twrr_file_id" });
 
   return TrxTwrr;

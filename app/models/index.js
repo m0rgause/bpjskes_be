@@ -18,5 +18,8 @@ db.kepemilikan = require("./kepemilikan.model")(config, Sequelize);
 db.kbmi = require("./kbmi.model")(config, Sequelize);
 db.trxTwrrFile = require("./trxTwrrFile.model")(config, Sequelize);
 db.trxTwrr = require("./trxTwrr.model.js")(config, Sequelize);
+db.trxPorto = require("./trxPorto.model.js")(config, Sequelize);
+db.trxPortoFile = require("./trxPortoFile.model.js")(config, Sequelize);
+db.trxRekap = require("./trxRekap.model.js")(config, Sequelize);
 
 module.exports = db;
