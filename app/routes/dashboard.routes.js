@@ -10,4 +10,5 @@ app.use("/issuer", require("./issuer.routes"));
 app.use("/rating", require("./rating.routes"));
 app.use("/master", require("./master.routes"));
 app.use("/twrr", require("./dashboard/twrr.routes"));
+app.use("/ckpn", require("./dashboard/ckpn.routes"));
 module.exports = app;

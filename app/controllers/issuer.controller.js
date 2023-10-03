@@ -29,10 +29,26 @@ const findAll = (req, res) => {
     });
 };
 
+const findSelect = (req, res) => {
+  Issuer.findAndCountAll({
+    attributes: ["id", "kode", "nama"],
+    order: [["urutan", "ASC"]],
+  })
+    .then((data) => {
+      res.send({ code: 200, data: data, error: null });
+    })
+    .catch((err) => {
+      res.status(500).send({
+        code: 500,
+        data: null,
+        error: err.message || "Some error occurred while retrieving data.",
+      });
+    });
+};
+
 // get data by id
 const findOne = (req, res) => {
   const id = req.params.id;
-
   Issuer.findOne({
     where: { id: id },
     include: {
@@ -146,4 +162,5 @@ module.exports = {
   create,
   update,
   deleteOne,
+  findSelect,
 };
