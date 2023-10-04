@@ -26,6 +26,27 @@ const findAll = (req, res) => {
     });
 };
 
+// get select data
+const findSelect = (req, res) => {
+  const { table } = req.params;
+
+  db[table]
+    .findAndCountAll({
+      attributes: ["id", "kode", "nama"],
+      order: [["urutan", "ASC"]],
+    })
+    .then((data) => {
+      res.send({ code: 200, data: data, error: null });
+    })
+    .catch((err) => {
+      res.status(500).send({
+        code: 500,
+        data: null,
+        error: err.message || "Some error occurred while retrieving data.",
+      });
+    });
+};
+
 // get data by id
 const findOne = (req, res) => {
   const { id, table } = req.params;
@@ -128,6 +149,7 @@ const deleteOne = (req, res) => {
 
 module.exports = {
   findAll,
+  findSelect,
   findOne,
   create,
   update,

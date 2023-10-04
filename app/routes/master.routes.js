@@ -2,6 +2,7 @@ const controller = require("../controllers/master.controller.js");
 const router = require("express").Router();
 
 router.get("/", controller.findAll);
+router.get("/select/:table", controller.findSelect);
 router.get("/:table/:id", controller.findOne);
 router.post("/:table", controller.create);
 router.put("/:table/:id", controller.update);
