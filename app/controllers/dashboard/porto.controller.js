@@ -640,9 +640,18 @@ const detailPortoFile = async (req, res) => {
       order: [["created_at", "DESC"]],
     });
 
+    let dataPortoFile = await db.trxPortoFile.findOne({
+      where: {
+        id: id,
+      },
+    });
+
     res.status(200).send({
       code: 200,
-      data: data,
+      data: {
+        data: data,
+        file: dataPortoFile,
+      },
       error: null,
     });
   } catch (error) {
