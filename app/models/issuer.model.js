@@ -29,6 +29,9 @@ module.exports = (sequelize, Sequelize) => {
         type: DataTypes.SMALLINT,
         allowNull: false,
       },
+      pd: {
+        type: DataTypes.FLOAT,
+      },
     },
     {
       tableName: "mst_issuer",
