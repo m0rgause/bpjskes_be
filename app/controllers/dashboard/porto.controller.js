@@ -1,6 +1,5 @@
 const db = require("../../models");
 const moment = require("moment");
-const { DataTypes } = require("sequelize");
 const { v4: uuidv4 } = require("uuid");
 
 const summary = async (req, res) => {
@@ -329,8 +328,8 @@ const uploadExcel = async (req, res) => {
     let validationStatus = true;
     let index = 0;
     for (const row of dataXLS) {
-      // validating data
       let validationNote = ``;
+      // validating data
       let mst_issuer_id,
         mst_tenor_id,
         mst_pengelolaan_id,
@@ -445,6 +444,14 @@ const uploadExcel = async (req, res) => {
               },
             }
           );
+
+          await db.trxRekap.destroy({
+            where: {
+              tipe: "porto",
+              subtipe: row.Tipe,
+              trx_porto_id: trx_porto_id,
+            },
+          });
         } else {
           trx_porto_id = uuidv4();
           await db.trxPorto.create({
@@ -472,43 +479,43 @@ const uploadExcel = async (req, res) => {
             created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
           });
         }
-      }
 
-      // porto rekap
-      let start_date = moment(row.IssuedDate, dateFormat);
-      let end_date = moment(row.MaturityDate, dateFormat);
-      let range_month = end_date.diff(start_date, "months") + 1;
-      let period = [];
-      for (let i = 0; i < range_month; i++) {
-        let new_month = moment(start_date).add(i, "months");
-        period.push({
-          period: new_month.format("YYYY-MM"),
-          tahun: new_month.format("YYYY"),
-          bulan: new_month.format("MM"),
-          end_year: i + 1 === range_month ? 1 : 0,
-        });
-      }
-      await db.trxRekap.destroy({
-        where: {
-          tipe: "porto",
-          subtipe: row.Tipe,
-          trx_porto_id: trx_porto_id,
-        },
-      });
-
-      await db.trxRekap.bulkCreate(
-        period.map((row) => {
-          return {
+        // porto rekap
+        let start_date = moment(row.IssuedDate, dateFormat);
+        let end_date = moment(row.MaturityDate, dateFormat);
+        let range_month = end_date.diff(start_date, "months") + 1;
+        let period = [];
+        for (let i = 0; i < range_month; i++) {
+          let new_month = moment(start_date).add(i, "months");
+          period.push({
+            period: new_month.format("YYYY-MM"),
+            tahun: new_month.format("YYYY"),
+            bulan: new_month.format("MM"),
+            end_year: i + 1 === range_month ? 1 : 0,
+          });
+        }
+        await db.trxRekap.destroy({
+          where: {
             tipe: "porto",
             subtipe: row.Tipe,
             trx_porto_id: trx_porto_id,
-            period: row.period,
-            tahun: row.tahun,
-            bulan: row.bulan,
-            end_year: row.end_year,
-          };
-        })
-      );
+          },
+        });
+
+        await db.trxRekap.bulkCreate(
+          period.map((col) => {
+            return {
+              tipe: "porto",
+              subtipe: row.Tipe,
+              trx_porto_id: trx_porto_id,
+              period: col.period,
+              tahun: col.tahun,
+              bulan: col.bulan,
+              end_year: col.end_year,
+            };
+          })
+        );
+      }
       if (validationNote !== ``) {
         validationStatus = false;
         trx_porto_id = null;
@@ -575,7 +582,6 @@ const uploadExcel = async (req, res) => {
     }
 
     await t.commit();
-
     res.status(200).send({
       code: 200,
       data: {

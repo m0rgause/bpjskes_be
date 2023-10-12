@@ -20,7 +20,7 @@ const findAll = (req, res) => {
       limit: end - start + 1,
       order: [
         ["tipe", "ASC"],
-        ["kolom", "ASC"],
+        ["urutan", "ASC"],
       ],
     }).then((data) => {
       res.send({
