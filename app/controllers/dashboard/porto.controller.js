@@ -490,6 +490,8 @@ const uploadExcel = async (req, res) => {
       }
       await db.trxRekap.destroy({
         where: {
+          tipe: "porto",
+          subtipe: row.Tipe,
           trx_porto_id: trx_porto_id,
         },
       });

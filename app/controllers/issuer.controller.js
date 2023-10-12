@@ -85,7 +85,9 @@ const create = (req, res) => {
     nama: req.body.nama,
     mst_rating_id: req.body.rating,
     urutan: req.body.urutan,
+    pd: req.body.pd,
     lgd: req.body.lgd,
+    warna: req.body.warna,
   };
 
   // Save data in the database

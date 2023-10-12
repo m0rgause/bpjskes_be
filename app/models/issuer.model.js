@@ -32,6 +32,9 @@ module.exports = (sequelize, Sequelize) => {
       pd: {
         type: DataTypes.FLOAT,
       },
+      warna: {
+        type: DataTypes.STRING(7),
+      },
     },
     {
       tableName: "mst_issuer",

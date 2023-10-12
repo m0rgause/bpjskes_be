@@ -1,5 +1,4 @@
 const db = require("../../models");
-const { Op } = require("sequelize");
 const moment = require("moment");
 
 const summary = async (req, res) => {
@@ -7,7 +6,6 @@ const summary = async (req, res) => {
     let { start, end, range, issuer } = req.body;
     // change range to positive
     range = Math.abs(Number(range));
-    const limit = end - start + 1;
 
     let list_period = [];
     for (let mth = 0; mth <= range; mth++) {
@@ -15,7 +13,7 @@ const summary = async (req, res) => {
       list_period.push(moment(start).add(mth, "month").format("YYYY-MM"));
     }
     let query = `SELECT 
-    mst_issuer.nama, SUM(ecl)
+    mst_issuer.nama, SUM(ecl), mst_issuer.warna
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -25,7 +23,7 @@ const summary = async (req, res) => {
     if (issuer !== "all") {
       query += `AND mst_issuer.id = :issuer `;
     }
-    query += `GROUP BY mst_issuer.nama
+    query += `GROUP BY mst_issuer.nama, mst_issuer.warna
     ORDER BY mst_issuer.nama ASC;`;
 
     const data = await db.sequelize.query(query, {

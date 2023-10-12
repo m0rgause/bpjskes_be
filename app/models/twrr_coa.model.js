@@ -25,6 +25,14 @@ module.exports = (sequelize, Sequelize) => {
         type: DataTypes.SMALLINT,
         allowNull: false,
       },
+      tampil: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+      },
+      kolom_xls: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
     },
     {
       tableName: "mst_twrr_coa",

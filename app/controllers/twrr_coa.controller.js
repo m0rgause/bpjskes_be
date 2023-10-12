@@ -45,6 +45,8 @@ const create = (req, res) => {
       kolom: req.body.kolom,
       label: req.body.label,
       urutan: req.body.urutan,
+      tampil: req.body.tampil === "true" ? "1" : "0",
+      kolom_xls: req.body.kolom_xls,
     };
 
     // Save data in the database
@@ -68,8 +70,16 @@ const create = (req, res) => {
 const update = (req, res) => {
   try {
     const id = req.params.id;
-
-    TWRRCOA.update(req.body, {
+    console.log(req.body);
+    const data = {
+      tipe: req.body.tipe,
+      kolom: req.body.kolom,
+      label: req.body.label,
+      urutan: req.body.urutan,
+      tampil: req.body.tampil === "true" ? "1" : "0",
+      kolom_xls: req.body.kolom_xls,
+    };
+    TWRRCOA.update(data, {
       where: { id: id },
     }).then((num) => {
       if (num == 1) {
