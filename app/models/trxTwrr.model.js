@@ -35,11 +35,9 @@ module.exports = (sequelize, Sequelize) => {
       },
       as4: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
       },
       as5: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
       },
       as6: {
         type: DataTypes.NUMERIC,

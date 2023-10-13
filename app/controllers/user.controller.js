@@ -286,7 +286,7 @@ const passReset = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Reset Password",
-      html: `<p>Click this link to reset your password</p><p><a href="${process.env.FRONTEND_URL}/auth/passreset?token=${token}">Reset Password</a></p>`,
+      html: `<p>Click this link to reset your password</p><p><a href="${process.env.FE_URL}/auth/passreset?token=${token}">Reset Password</a></p>`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {

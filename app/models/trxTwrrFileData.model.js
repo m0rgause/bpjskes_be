@@ -115,6 +115,10 @@ module.exports = (sequelize, Sequelize) => {
         type: DataTypes.DATE,
         allowNull: false,
       },
+      status: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+      },
     },
     {
       tableName: "trx_twrr_filedata",

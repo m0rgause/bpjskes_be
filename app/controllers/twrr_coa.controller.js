@@ -70,7 +70,6 @@ const create = (req, res) => {
 const update = (req, res) => {
   try {
     const id = req.params.id;
-    console.log(req.body);
     const data = {
       tipe: req.body.tipe,
       kolom: req.body.kolom,

@@ -7,5 +7,6 @@ router.post("/detail", controller.detail);
 router.post("/file", controller.listTWRRFile);
 router.post("/file/detail", controller.detailTWRRFile);
 router.put("/upload", controller.uploadTWRRFile);
+router.post("/list-kolom", controller.listKolom);
 
 module.exports = router;

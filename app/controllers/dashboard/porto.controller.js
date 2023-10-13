@@ -322,6 +322,7 @@ const uploadExcel = async (req, res) => {
       id: trx_porto_file_id,
       file_name: fileName,
       status: false,
+      // aut_user_id: req.user.id,
       created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
     });
 
@@ -379,20 +380,20 @@ const uploadExcel = async (req, res) => {
         mst_kepemilikan_id = data.kepemilikan.id[indexKepemilikan];
       }
 
-      let pd = data.issuer.pd[indexIssuer];
-      let lgd = data.issuer.lgd[indexIssuer];
+      let pd = Number(data.issuer.pd[indexIssuer]);
+      let lgd = Number(data.issuer.lgd[indexIssuer]);
       let ecl;
-      if (row.SisaTenor < 360) {
+      if (Number(row.SisaTenor) < 360) {
         ecl =
-          (1 - Math.pow(1 - pd / 100, row.SisaTenor / 360)) *
+          (1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
           (lgd / 100) *
-          row.Nominal;
+          Number(row.Nominal);
       } else {
         ecl =
-          ((1 - Math.pow(1 - pd / 100, row.SisaTenor / 360)) *
+          ((1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
             (lgd / 100) *
-            row.Nominal) /
-          Math.pow((1 + 4.87 / 100) ^ (row.SisaTenor / 360));
+            Number(row.Nominal)) /
+          Math.pow((1 + 4.87 / 100) ^ (Number(row.SisaTenor) / 360));
       }
 
       // put validation note into index array
