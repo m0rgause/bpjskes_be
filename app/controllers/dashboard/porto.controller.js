@@ -67,7 +67,6 @@ const detailSummary = async (req, res) => {
       let period = moment(start).add(i, "months").format("YYYY-MM");
       list_period.push(period);
     }
-
     let query = `
       SELECT ${joinTable}.nama, SUM(nominal) as nominal
       FROM ${tableName}
@@ -119,9 +118,9 @@ const detailSummary = async (req, res) => {
 const multiPorto = async (req, res) => {
   try {
     let {
-      start,
-      end,
-      range,
+      type,
+      list_date,
+      custody,
       issuer,
       kbmi,
       tenor,
@@ -130,10 +129,12 @@ const multiPorto = async (req, res) => {
       subtipe,
     } = req.body;
 
-    let list_period = [];
-    for (let i = 0; i < range; i++) {
-      let period = moment(start).add(i, "months").format("YYYY-MM");
-      list_period.push(period);
+    if (list_date === undefined || list_date.length === 0) {
+      return res.status(200).json({
+        code: 400,
+        data: null,
+        error: "List date cannot be empty",
+      });
     }
 
     let sb = ``;
@@ -143,34 +144,70 @@ const multiPorto = async (req, res) => {
       sb = `LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
       LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id`;
     }
-
     let query = ``;
     let queryTable = ``;
-    query += `
-      SELECT trx_rekap.period, SUM(nominal) as nominal
+    if (type === "monthly") {
+      query += `
+      SELECT trx_rekap.period, SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
       JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.period IN (:list_month)
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
     `;
 
-    queryTable += `
-     SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.* ${sbSelect}
+      queryTable += `
+     SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.*, mst_bank_custody.nama as "custody" ${sbSelect}
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
       JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.period IN (:list_month)
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
     `;
+    } else if (type === "yearly") {
+      query += `
+      SELECT trx_rekap.tahun as "period", SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
+      FROM trx_porto
+      JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
+      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
+      ${sb}
+      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
+      WHERE trx_rekap.tipe = 'porto'
+      AND trx_rekap.subtipe = :subtipe
+      AND trx_rekap.tahun IN (:list_month)
+      AND trx_rekap.end_year = 1
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+    `;
+      queryTable += `
+      SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.*, mst_bank_custody.nama as "custody" ${sbSelect}
+      FROM trx_porto
+      JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
+      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
+      ${sb}
+      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
+      WHERE trx_rekap.tipe = 'porto'
+      AND trx_rekap.subtipe = :subtipe
+      AND trx_rekap.tahun IN (:list_month)
+      AND trx_rekap.end_year = 1
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+    `;
+    }
 
     if (issuer !== "all") {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
@@ -192,14 +229,24 @@ const multiPorto = async (req, res) => {
       query += ` AND trx_porto.mst_pengelolaan_id = :pengelolaan`;
       queryTable += ` AND trx_porto.mst_pengelolaan_id = :pengelolaan`;
     }
-
-    query += ` GROUP BY trx_rekap.period
+    if (custody !== "all") {
+      query += ` AND trx_porto.mst_bank_custody_id = :custody`;
+      queryTable += ` AND trx_porto.mst_bank_custody_id = :custody`;
+    }
+    if (type === "monthly") {
+      query += ` GROUP BY trx_rekap.period, mst_bank_custody.nama
     ORDER BY trx_rekap.period ASC;`;
-    queryTable += ` ORDER BY trx_rekap.period ASC;`;
-
+      queryTable += ` ORDER BY trx_rekap.period ASC;`;
+    } else if (type === "yearly") {
+      query += ` GROUP BY trx_rekap.tahun, mst_bank_custody.nama
+    ORDER BY trx_rekap.tahun ASC;`;
+      queryTable += ` ORDER BY trx_rekap.tahun ASC;`;
+    }
     const options = {
       replacements: {
-        list_month: list_period,
+        list_month: list_date,
+        type: type,
+        custody: custody,
         issuer: issuer,
         kbmi: kbmi,
         tenor: tenor,
@@ -231,7 +278,7 @@ const multiPorto = async (req, res) => {
 
 const comparison = async (req, res) => {
   try {
-    let { type, list_date, issuer } = req.body;
+    let { type, list_date, issuer, custody } = req.body;
 
     if (list_date === undefined || list_date.length === 0) {
       return res.status(200).json({
@@ -243,17 +290,20 @@ const comparison = async (req, res) => {
 
     let query = ``;
     if (type === "monthly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal)
+      query = `SELECT trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
+      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.period IN (:list_date)
       `;
     } else if (type === "yearly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal)
+      query = `SELECT trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.tahun IN (:list_date)
       AND trx_rekap.end_year = 1
@@ -262,13 +312,14 @@ const comparison = async (req, res) => {
     if (issuer !== "all") {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
     }
-    query += ` GROUP BY trx_porto.tipe
+    query += ` GROUP BY trx_porto.tipe, mst_bank_custody.nama
       ORDER BY trx_porto.tipe ASC;`;
 
     const options = {
       replacements: {
         list_date: list_date,
         issuer: issuer,
+        custody: custody,
       },
       type: db.Sequelize.QueryTypes.SELECT,
     };

@@ -21,6 +21,10 @@ module.exports = (sequelize, Sequelize) => {
       urutan: {
         type: DataTypes.SMALLINT,
       },
+      tipe: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
     },
     {
       tableName: "mst_tenor",

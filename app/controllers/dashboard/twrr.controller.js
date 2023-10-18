@@ -1,23 +1,39 @@
 const db = require("../../models");
 const Op = db.Sequelize.Op;
-const { fn, col, cast } = require("sequelize");
 const { v4: uuidv4 } = require("uuid");
 const moment = require("moment");
 const xlsx = require("xlsx");
 
 const externalCash = async (req, res) => {
   try {
-    let { start, end } = req.body;
+    let { type, listDate } = req.body;
+
+    if (listDate === undefined || listDate.length === 0) {
+      res.status(200).send({
+        code: 200,
+        data: null,
+        error: "List date cannot be empty",
+      });
+      return;
+    }
+    let query = ``;
+    if (type === "daily") {
+      query = `SELECT tanggal, total_before_cash, total_after_cash, return_harian, return_akumulasi FROM trx_twrr WHERE tanggal IN (:listDate) ORDER BY tanggal ASC`;
+    } else if (type === "monthly") {
+      query = `SELECT * FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.period IN (:listDate) ORDER BY trx_twrr.tanggal ASC, trx_rekap.period ASC, trx_rekap.bulan ASC`;
+    } else if (type === "yearly") {
+      query = `SELECT * FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.tahun IN (:listDate)  ORDER BY trx_twrr.tanggal ASC, trx_rekap.tahun ASC, trx_rekap.bulan ASC`;
+    }
+
     const options = {
-      where: {
-        tanggal: {
-          [Op.between]: [start, end],
-        },
+      replacements: {
+        listDate: listDate,
       },
-      order: [["tanggal", "ASC"]],
+      type: db.Sequelize.QueryTypes.SELECT,
     };
 
-    const data = await db.trxTwrr.findAndCountAll(options);
+    data = await db.sequelize.query(query, options);
+
     res.status(200).send({
       code: 200,
       data: data,
@@ -48,10 +64,10 @@ const comparison = async (req, res) => {
     }
     if (type === "daily") {
       const query = `SELECT tanggal, total_before_cash, total_after_cash, return_harian
-FROM trx_twrr
-WHERE tanggal IN (:list_date)
-ORDER BY tanggal ASC
-`;
+      FROM trx_twrr
+      WHERE tanggal IN (:list_date)
+      ORDER BY tanggal ASC
+      `;
       options = {
         replacements: {
           list_date: list_date,
@@ -61,22 +77,22 @@ ORDER BY tanggal ASC
       data = await db.sequelize.query(query, options);
     } else if (type === "monthly") {
       const query = `SELECT
-  trx_twrr.tanggal,
-  trx_twrr.total_before_cash,
-  trx_twrr.total_after_cash,
-  trx_twrr.return_harian
-FROM
-  trx_twrr
-JOIN
-  trx_rekap
-ON
-  trx_rekap.trx_twrr_id = trx_twrr.id
-WHERE
-  trx_rekap.tipe = 'twrr'
-  AND trx_rekap.period IN (:list_date)
-ORDER BY
-  trx_rekap.period ASC;
-`;
+        trx_twrr.tanggal,
+        trx_twrr.total_before_cash,
+        trx_twrr.total_after_cash,
+        trx_twrr.return_harian
+      FROM
+        trx_twrr
+      JOIN
+        trx_rekap
+      ON
+        trx_rekap.trx_twrr_id = trx_twrr.id
+      WHERE
+        trx_rekap.tipe = 'twrr'
+        AND trx_rekap.period IN (:list_date)
+      ORDER BY
+        trx_rekap.period ASC;
+      `;
       options = {
         replacements: {
           list_date: list_date,
@@ -86,23 +102,23 @@ ORDER BY
       data = await db.sequelize.query(query, options);
     } else if (type === "yearly") {
       const query = `SELECT
-  trx_twrr.tanggal,
-  trx_twrr.total_before_cash,
-  trx_twrr.total_after_cash,
-  trx_twrr.return_harian
-FROM
-  trx_twrr
-JOIN
-  trx_rekap
-ON
-  trx_rekap.trx_twrr_id = trx_twrr.id
-WHERE
-  trx_rekap.tipe = 'twrr'
-  AND trx_rekap.tahun IN (:list_date) 
-  AND end_year = 1
-ORDER BY
-  trx_rekap.tahun ASC;
-`;
+        trx_twrr.tanggal,
+        trx_twrr.total_before_cash,
+        trx_twrr.total_after_cash,
+        trx_twrr.return_harian
+      FROM
+        trx_twrr
+      JOIN
+        trx_rekap
+      ON
+        trx_rekap.trx_twrr_id = trx_twrr.id
+      WHERE
+        trx_rekap.tipe = 'twrr'
+        AND trx_rekap.tahun IN (:list_date) 
+        AND end_year = 1
+      ORDER BY
+        trx_rekap.tahun ASC;
+      `;
       options = {
         replacements: {
           list_date: list_date,

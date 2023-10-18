@@ -23,5 +23,6 @@ db.trxPortoFile = require("./trxPortoFile.model.js")(config, Sequelize);
 db.trxRekap = require("./trxRekap.model.js")(config, Sequelize);
 db.trxPortoFileData = require("./trxPortoFileData.model.js")(config, Sequelize);
 db.trxTwrrFileData = require("./trxTwrrFileData.model.js")(config, Sequelize);
+db.bankCustody = require("./bank_custody.model.js")(config, Sequelize);
 
 module.exports = db;

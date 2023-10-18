@@ -29,12 +29,27 @@ const findAll = (req, res) => {
 // get select data
 const findSelect = (req, res) => {
   const { table } = req.params;
+  const { tipe } = req.query || "";
 
-  db[table]
-    .findAndCountAll({
+  // console.log(table);
+  let options = {
+    attributes: ["id", "kode", "nama"],
+    order: [["urutan", "ASC"]],
+  };
+  if (table === "tenor") {
+    options = {
       attributes: ["id", "kode", "nama"],
       order: [["urutan", "ASC"]],
-    })
+      where: {
+        tipe: {
+          [Op.iLike]: `%${tipe}%`,
+        },
+      },
+    };
+  }
+
+  db[table]
+    .findAndCountAll(options)
     .then((data) => {
       res.send({ code: 200, data: data, error: null });
     })
@@ -71,13 +86,15 @@ const create = (req, res) => {
   const { kode } = req.body;
 
   // Validate request
-  if (!kode) {
-    res.status(400).send({
-      code: 400,
-      data: null,
-      error: "Content can not be empty!",
-    });
-    return;
+  if (table !== "bankCustody") {
+    if (!kode) {
+      res.status(400).send({
+        code: 400,
+        data: null,
+        error: "Content can not be empty!",
+      });
+      return;
+    }
   }
 
   // Create data
