@@ -85,6 +85,9 @@ module.exports = (sequelize, Sequelize) => {
       note: {
         type: DataTypes.TEXT,
       },
+      mst_bank_custody_id: {
+        type: DataTypes.UUID,
+      },
     },
     {
       tableName: "trx_porto_filedata",
@@ -99,6 +102,7 @@ module.exports = (sequelize, Sequelize) => {
   const MstKbmi = require("./kbmi.model")(sequelize, Sequelize);
   const MstKepemilikan = require("./kepemilikan.model")(sequelize, Sequelize);
   const MstIssuer = require("./issuer.model")(sequelize, Sequelize);
+  const MstBankCustody = require("./bank_custody.model")(sequelize, Sequelize);
 
   TrxPortoFileData.belongsTo(TrxPorto, { foreignKey: "trx_porto_id" });
   TrxPortoFileData.belongsTo(MstIssuer, { foreignKey: "mst_issuer_id" });
@@ -110,6 +114,9 @@ module.exports = (sequelize, Sequelize) => {
     foreignKey: "mst_pengelolaan_id",
   });
   TrxPortoFileData.belongsTo(MstTenor, { foreignKey: "mst_tenor_id" });
+  TrxPortoFileData.belongsTo(MstBankCustody, {
+    foreignKey: "mst_bank_custody_id",
+  });
 
   return TrxPortoFileData;
 };

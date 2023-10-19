@@ -15,11 +15,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       trx_twrr_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
       },
       tanggal: {
         type: DataTypes.DATEONLY,
-        allowNull: false,
+        allowNull: true,
       },
       adjustment_cf: {
         type: DataTypes.NUMERIC,
@@ -119,6 +119,14 @@ module.exports = (sequelize, Sequelize) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
       },
+      note: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      mst_bank_custody_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
     },
     {
       tableName: "trx_twrr_filedata",
@@ -129,9 +137,13 @@ module.exports = (sequelize, Sequelize) => {
   // Define foreign key relationships
   const TrxTwrrFile = require("./trxTwrrFile.model")(sequelize, Sequelize);
   const TrxTwrr = require("./trxTwrr.model")(sequelize, Sequelize);
+  const MstBankCustody = require("./bank_custody.model")(sequelize, Sequelize);
 
   TrxTwrrFileData.belongsTo(TrxTwrrFile, { foreignKey: "trx_twrr_file_id" });
   TrxTwrrFileData.belongsTo(TrxTwrr, { foreignKey: "trx_twrr_id" });
+  TrxTwrrFileData.belongsTo(MstBankCustody, {
+    foreignKey: "mst_bank_custody_id",
+  });
 
   return TrxTwrrFileData;
 };

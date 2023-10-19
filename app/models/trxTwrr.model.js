@@ -112,6 +112,10 @@ module.exports = (sequelize, Sequelize) => {
       updated_at: {
         type: DataTypes.DATE,
       },
+      mst_bank_custody_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
     },
     {
       tableName: "trx_twrr",
@@ -121,7 +125,10 @@ module.exports = (sequelize, Sequelize) => {
 
   // Define foreign key relationship
   const TrxTwrrFile = require("./trxTwrrFile.model")(sequelize, Sequelize); // Adjust this to the correct model and path
+  const MstBankCustody = require("./bank_custody.model")(sequelize, Sequelize); // Adjust this to the correct model and path
+
   TrxTwrr.belongsTo(TrxTwrrFile, { foreignKey: "trx_twrr_file_id" });
+  TrxTwrr.belongsTo(MstBankCustody, { foreignKey: "mst_bank_custody_id" });
 
   return TrxTwrr;
 };

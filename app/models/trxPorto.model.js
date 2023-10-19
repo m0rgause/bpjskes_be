@@ -84,6 +84,9 @@ module.exports = (sequelize, Sequelize) => {
       updated_at: {
         type: DataTypes.DATE,
       },
+      mst_bank_custody_id: {
+        type: DataTypes.UUID,
+      },
     },
     {
       tableName: "trx_porto",
@@ -98,6 +101,7 @@ module.exports = (sequelize, Sequelize) => {
   const MstKbmi = require("./kbmi.model")(sequelize, Sequelize); // Adjust this to the correct model and path
   const MstKepemilikan = require("./kepemilikan.model")(sequelize, Sequelize); // Adjust this to the correct model and path
   const MstIssuer = require("./issuer.model")(sequelize, Sequelize); // Adjust this to the correct model and path
+  const MstBankCustody = require("./bank_custody.model")(sequelize, Sequelize); // Adjust this to the correct model and path
 
   TrxPorto.belongsTo(MstTenor, { foreignKey: "mst_tenor_id" });
   TrxPorto.belongsTo(TrxPortoFile, { foreignKey: "trx_porto_file_id" });
@@ -105,6 +109,7 @@ module.exports = (sequelize, Sequelize) => {
   TrxPorto.belongsTo(MstKbmi, { foreignKey: "mst_kbmi_id" });
   TrxPorto.belongsTo(MstKepemilikan, { foreignKey: "mst_kepemilikan_id" });
   TrxPorto.belongsTo(MstIssuer, { foreignKey: "mst_issuer_id" });
+  TrxPorto.belongsTo(MstBankCustody, { foreignKey: "mst_bank_custody_id" });
 
   return TrxPorto;
 };
