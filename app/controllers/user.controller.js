@@ -18,6 +18,10 @@ const getAll = async (req, res) => {
           model: db.group,
           attributes: ["id", "nama"],
         },
+        {
+          model: db.bankCustody,
+          attributes: ["id", "nama"],
+        },
       ],
       order: [["nama", "ASC"]],
       offset: parseInt(startRange),
@@ -130,7 +134,14 @@ const signIn = async (req, res) => {
 
 const signUp = async (req, res) => {
   try {
-    const { email, password, aut_group_id, nama, is_active } = req.body;
+    const {
+      email,
+      password,
+      aut_group_id,
+      nama,
+      is_active,
+      mst_bank_custody_id,
+    } = req.body;
 
     const [user, created] = await User.findOrCreate({
       where: { email },
@@ -140,6 +151,7 @@ const signUp = async (req, res) => {
         aut_group_id,
         nama,
         is_active,
+        mst_bank_custody_id,
       },
     });
 
@@ -430,7 +442,14 @@ const getOne = async (req, res) => {
     }
     const user = await User.findOne({
       where: { id: id },
-      attributes: ["id", "email", "nama", "is_active", "aut_group_id"],
+      attributes: [
+        "id",
+        "email",
+        "nama",
+        "is_active",
+        "aut_group_id",
+        "mst_bank_custody_id",
+      ],
     });
     if (!user) {
       return res.status(400).json({

@@ -1,8 +1,8 @@
 const db = require("../models");
 
-const findAll = (req, res) => {
+const findAll = async (req, res) => {
   try {
-    db.bankCustody.findAll().then((data) => {
+    await db.bankCustody.findAll().then((data) => {
       res.send({
         code: 200,
         error: null,
@@ -18,10 +18,10 @@ const findAll = (req, res) => {
   }
 };
 
-const findOne = (req, res) => {
+const findOne = async (req, res) => {
   try {
     const id = req.params.id;
-    db.bankCustody
+    await db.bankCustody
       .findOne({
         where: { id: id },
       })
@@ -41,19 +41,17 @@ const findOne = (req, res) => {
   }
 };
 
-const findSelect = (req, res) => {
+const findSelect = async (req, res) => {
   try {
-    db.bankCustody
-      .findAll({
-        attributes: ["id", "nama"],
-      })
-      .then((data) => {
-        res.send({
-          code: 200,
-          error: null,
-          data: data,
-        });
-      });
+    const result = await db.bankCustody.findAndCountAll({
+      attributes: ["id", "nama"],
+      order: [["nama", "ASC"]],
+    });
+    res.send({
+      code: 200,
+      error: null,
+      data: result,
+    });
   } catch (error) {
     res.status(500).send({
       code: 500,
@@ -63,9 +61,9 @@ const findSelect = (req, res) => {
   }
 };
 
-const create = (req, res) => {
+const create = async (req, res) => {
   try {
-    db.bankCustody.create(req.body).then((data) => {
+    await db.bankCustody.create(req.body).then((data) => {
       res.send({
         code: 200,
         error: null,
@@ -81,10 +79,10 @@ const create = (req, res) => {
   }
 };
 
-const update = (req, res) => {
+const update = async (req, res) => {
   try {
     const id = req.params.id;
-    db.bankCustody
+    await db.bankCustody
       .update(req.body, {
         where: { id: id },
       })
@@ -104,10 +102,10 @@ const update = (req, res) => {
   }
 };
 
-const remove = (req, res) => {
+const remove = async (req, res) => {
   try {
     const id = req.params.id;
-    db.bankCustody
+    await db.bankCustody
       .destroy({
         where: { id: id },
       })

@@ -48,8 +48,8 @@ module.exports = (sequelize, Sequelize) => {
     }
   );
   const Group = require("./group.model")(sequelize, Sequelize);
-  // const BankCustody = require("./bank_custody.model")(sequelize, Sequelize);
+  const BankCustody = require("./bank_custody.model")(sequelize, Sequelize);
   User.belongsTo(Group, { foreignKey: "aut_group_id" });
-  // User.belongsTo(BankCustody, { foreignKey: "mst_bank_custody_id" });
+  User.belongsTo(BankCustody, { foreignKey: "mst_bank_custody_id" });
   return User;
 };

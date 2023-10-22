@@ -13,5 +13,6 @@ app.use("/twrr", require("./dashboard/twrr.routes"));
 app.use("/ckpn", require("./dashboard/ckpn.routes"));
 app.use("/porto", require("./dashboard/porto.routes"));
 app.use("/custody", require("./custody.routes"));
+app.use("/notification", require("./notification.routes"));
 
 module.exports = app;
