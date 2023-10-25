@@ -6,28 +6,45 @@ const xlsx = require("xlsx");
 
 const externalCash = async (req, res) => {
   try {
-    let { type, listDate } = req.body;
-
-    if (listDate === undefined || listDate.length === 0) {
-      res.status(200).send({
-        code: 200,
-        data: null,
-        error: "List date cannot be empty",
-      });
-      return;
+    let { type, startDate, rangeDate } = req.body;
+    let period = [];
+    for (let i = 0; i < rangeDate; i++) {
+      if (type === "daily") {
+        period.push(moment(startDate).add(i, "days").format("YYYY-MM-DD"));
+      } else if (type === "monthly") {
+        period.push(moment(startDate).add(i, "months").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        period.push(moment(startDate).add(i, "years").format("YYYY"));
+      }
     }
     let query = ``;
     if (type === "daily") {
-      query = `SELECT tanggal, total_before_cash, total_after_cash, return_harian, return_akumulasi FROM trx_twrr WHERE tanggal IN (:listDate) ORDER BY tanggal ASC`;
+      query = `SELECT tanggal as period, total_before_cash, total_after_cash, return_harian, return_akumulasi FROM trx_twrr WHERE tanggal IN (:listDate) ORDER BY tanggal ASC`;
     } else if (type === "monthly") {
-      query = `SELECT * FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.period IN (:listDate) ORDER BY trx_twrr.tanggal ASC, trx_rekap.period ASC, trx_rekap.bulan ASC`;
+      query = `SELECT 
+      trx_rekap.period as period,
+      sum(trx_twrr.total_before_cash) as total_before_cash,
+      sum(trx_twrr.total_after_cash) as total_after_cash,
+      sum(trx_twrr.return_harian) as return_harian,
+      sum(trx_twrr.return_akumulasi) as return_akumulasi
+       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.period IN (:listDate) 
+      GROUP BY trx_rekap.period
+      ORDER BY trx_rekap.period ASC`;
     } else if (type === "yearly") {
-      query = `SELECT * FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.tahun IN (:listDate)  ORDER BY trx_twrr.tanggal ASC, trx_rekap.tahun ASC, trx_rekap.bulan ASC`;
+      query = `SELECT 
+      trx_rekap.tahun as period,
+      sum(trx_twrr.total_before_cash) as total_before_cash,
+      sum(trx_twrr.total_after_cash) as total_after_cash,
+      sum(trx_twrr.return_harian) as return_harian,
+      sum(trx_twrr.return_akumulasi) as return_akumulasi
+       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.tahun IN (:listDate) 
+      GROUP BY trx_rekap.tahun
+      ORDER BY trx_rekap.tahun ASC`;
     }
 
     const options = {
       replacements: {
-        listDate: listDate,
+        listDate: period,
       },
       type: db.Sequelize.QueryTypes.SELECT,
     };
@@ -335,17 +352,17 @@ const uploadTWRRFile = async (req, res) => {
         dataXLSHeaderList.forEach((col) => {
           let assetsColIdx = listCOAKolomAssets.indexOf(col);
           if (assetsColIdx !== -1) {
-            assetsTotal += Number(row[col]);
+            assetsTotal += row[col] ? Number(row[col]) : 0;
           }
           let liabilitiesColIdx = listCOAKolomLiabilities.indexOf(col);
           if (liabilitiesColIdx !== -1) {
-            liabilitiesTotal += Number(row[col]);
+            liabilitiesTotal += row[col] ? Number(row[col]) : 0;
           }
           let CoaKolomXLSIdx = listCOAKolomXLS.indexOf(col);
           if (CoaKolomXLSIdx !== -1) {
             listCOAKolom.forEach((row2) => {
               if (row2 === listCOAKolom[CoaKolomXLSIdx]) {
-                listForUpdate[row2] = Number(row[col]);
+                listForUpdate[row2] = row[col] ? Number(row[col]) : 0;
               }
             });
           }
@@ -359,8 +376,8 @@ const uploadTWRRFile = async (req, res) => {
             attributes: ["total_after_cash"],
             order: [["tanggal", "DESC"]],
           });
-          let returnHarian =
-            ((totalBeforeCash - TWRRDataLast.total_after_cash) /
+          returnHarian =
+            ((totalBeforeCash - (TWRRDataLast?.total_after_cash ?? 0)) /
               totalBeforeCash) *
             100;
           let tglMoment = moment(row.Date, "DD/MM/YYYY");
@@ -376,7 +393,7 @@ const uploadTWRRFile = async (req, res) => {
               type: db.Sequelize.QueryTypes.SELECT,
             }
           );
-          let returnAkumulasi =
+          returnAkumulasi =
             (TWRRDataSumLast[0]?.return_harian ?? 0) + returnHarian;
           const checkTWRR = await db.trxTwrr.findOne({
             where: {
@@ -439,6 +456,7 @@ const uploadTWRRFile = async (req, res) => {
               tahun: tahun,
               bulan: bulan,
             },
+            transaction: t,
           });
 
           if (checkRekap) {

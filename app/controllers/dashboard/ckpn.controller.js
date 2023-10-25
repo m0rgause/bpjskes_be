@@ -3,15 +3,15 @@ const moment = require("moment");
 
 const summary = async (req, res) => {
   try {
-    let { type, listDate, issuer, custody } = req.body;
+    let { type, listDate, startDate, rangeDate, issuer, custody } = req.body;
 
-    // Validate inputs
-    if (listDate === undefined || listDate.length === 0) {
-      return res.status(200).json({
-        code: 400,
-        data: null,
-        error: "List date cannot be empty",
-      });
+    let period = [];
+    for (let mth = 0; mth < rangeDate; mth++) {
+      if (type === "monthly") {
+        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        period.push(moment(startDate).add(mth, "year").format("YYYY"));
+      }
     }
 
     let query = ``;
@@ -52,7 +52,7 @@ const summary = async (req, res) => {
 
     const data = await db.sequelize.query(query, {
       replacements: {
-        list_month: listDate,
+        list_month: period,
         issuer: issuer,
         custody: custody,
       },
@@ -75,17 +75,16 @@ const summary = async (req, res) => {
 
 const deposito = async (req, res) => {
   try {
-    let { type, list_date, custody, issuer, kbmi, tenor } = req.body;
+    let { type, startDate, rangeDate, custody, issuer, kbmi, tenor } = req.body;
 
-    // Validate inputs
-    if (list_date === undefined || list_date.length === 0) {
-      return res.status(200).json({
-        code: 400,
-        data: null,
-        error: "List date cannot be empty",
-      });
+    let period = [];
+    for (let mth = 0; mth < rangeDate; mth++) {
+      if (type === "monthly") {
+        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        period.push(moment(startDate).add(mth, "year").format("YYYY"));
+      }
     }
-
     let query = ``;
     let queryTable = ``;
     let list_select = "";
@@ -158,25 +157,21 @@ const deposito = async (req, res) => {
     ORDER BY ${list_group} ASC;`;
     queryTable += `ORDER BY ${list_group};`;
 
+    const replacements = {
+      list_month: period,
+      issuer: issuer,
+      kbmi: kbmi,
+      tenor: tenor,
+      custody: custody,
+    };
+
     const data = await db.sequelize.query(query, {
-      replacements: {
-        list_month: list_date,
-        issuer: issuer,
-        kbmi: kbmi,
-        tenor: tenor,
-        custody: custody,
-      },
+      replacements: replacements,
       type: db.sequelize.QueryTypes.SELECT,
     });
 
     const dataTable = await db.sequelize.query(queryTable, {
-      replacements: {
-        list_month: list_date,
-        issuer: issuer,
-        kbmi: kbmi,
-        tenor: tenor,
-        custody: custody,
-      },
+      replacements: replacements,
       type: db.sequelize.QueryTypes.SELECT,
     });
 
@@ -199,15 +194,15 @@ const deposito = async (req, res) => {
 
 const obligasi = async (req, res) => {
   try {
-    let { type, list_date, custody, issuer, tenor } = req.body;
+    let { type, rangeDate, startDate, custody, issuer, tenor } = req.body;
 
-    // Validate inputs
-    if (list_date === undefined || list_date.length === 0) {
-      return res.status(200).json({
-        code: 400,
-        data: null,
-        error: "List date cannot be empty",
-      });
+    let period = [];
+    for (let mth = 0; mth < rangeDate; mth++) {
+      if (type === "monthly") {
+        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        period.push(moment(startDate).add(mth, "year").format("YYYY"));
+      }
     }
 
     let query = ``;
@@ -278,23 +273,20 @@ const obligasi = async (req, res) => {
     ORDER BY ${list_group} ASC;`;
     queryTable += `ORDER BY ${list_group};`;
 
+    const replacements = {
+      list_month: period,
+      issuer: issuer,
+      tenor: tenor,
+      custody: custody,
+    };
+
     const data = await db.sequelize.query(query, {
-      replacements: {
-        list_month: list_date,
-        issuer: issuer,
-        tenor: tenor,
-        custody: custody,
-      },
+      replacements: replacements,
       type: db.sequelize.QueryTypes.SELECT,
     });
 
     const dataTable = await db.sequelize.query(queryTable, {
-      replacements: {
-        list_month: list_date,
-        issuer: issuer,
-        tenor: tenor,
-        custody: custody,
-      },
+      replacements: replacements,
       type: db.sequelize.QueryTypes.SELECT,
     });
 

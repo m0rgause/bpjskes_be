@@ -19,11 +19,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       mst_kbmi_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
       },
       mst_kepemilikan_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
       },
       mst_pengelolaan_id: {
         type: DataTypes.UUID,
@@ -59,11 +59,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       sisa_tenor: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
+        allowNull: true,
       },
       rate: {
         type: DataTypes.REAL,
-        allowNull: false,
+        allowNull: true,
       },
       pd: {
         type: DataTypes.REAL,

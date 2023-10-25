@@ -57,11 +57,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       sisa_tenor: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
+        allowNull: true,
       },
       rate: {
         type: DataTypes.REAL,
-        allowNull: false,
+        allowNull: true,
       },
       pd: {
         type: DataTypes.DOUBLE,

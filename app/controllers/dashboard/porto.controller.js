@@ -1,24 +1,38 @@
 const db = require("../../models");
 const moment = require("moment");
 const { v4: uuidv4 } = require("uuid");
+const qs = require("qs");
 
 const summary = async (req, res) => {
   try {
-    let { start, end, range, issuer } = req.body;
+    let { type, start, range, issuer } = req.body;
 
     let list_period = [];
     for (let i = 0; i < range; i++) {
-      let period = moment(start).add(i, "months").format("YYYY-MM");
-      list_period.push(period);
+      if (type === "monthly") {
+        list_period.push(moment(start).add(i, "months").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        list_period.push(moment(start).add(i, "years").format("YYYY"));
+      }
     }
 
     let query = ``;
-    query = `SELECT trx_porto.tipe, SUM(nominal)
+    if (type === "monthly") {
+      query = `SELECT trx_porto.tipe, SUM(nominal)
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.period IN (:list_month)
     `;
+    } else if (type === "yearly") {
+      query = `SELECT trx_porto.tipe, SUM(nominal)
+    FROM trx_porto
+    JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
+    WHERE trx_rekap.tipe = 'porto'
+    AND trx_rekap.tahun IN (:list_month)
+    AND trx_rekap.end_year = 1
+    `;
+    }
 
     if (issuer !== "all") {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
@@ -60,25 +74,49 @@ const summary = async (req, res) => {
 
 const detailSummary = async (req, res) => {
   try {
-    let { start, end, range, issuer, tableName, joinTable, subtipe } = req.body;
+    let { type, start, range, custody, issuer, tableName, joinTable, subtipe } =
+      req.body;
 
     let list_period = [];
     for (let i = 0; i < range; i++) {
-      let period = moment(start).add(i, "months").format("YYYY-MM");
-      list_period.push(period);
+      if (type === "monthly") {
+        list_period.push(moment(start).add(i, "months").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        list_period.push(moment(start).add(i, "years").format("YYYY"));
+      }
     }
-    let query = `
+
+    let query = ``;
+    if (type === "monthly") {
+      query = `
       SELECT ${joinTable}.nama, SUM(nominal) as nominal
       FROM ${tableName}
       JOIN trx_rekap ON trx_rekap.${tableName}_id = ${tableName}.id
       LEFT JOIN ${joinTable} ON ${tableName}.${joinTable}_id = ${joinTable}.id
+      JOIN mst_bank_custody ON ${tableName}.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.subtipe = '${subtipe}'
       AND trx_rekap.period IN (:list_month)
     `;
+    } else if (type === "yearly") {
+      query = `
+      SELECT ${joinTable}.nama, SUM(nominal) as nominal
+      FROM ${tableName}
+      JOIN trx_rekap ON trx_rekap.${tableName}_id = ${tableName}.id
+      LEFT JOIN ${joinTable} ON ${tableName}.${joinTable}_id = ${joinTable}.id
+      JOIN mst_bank_custody ON ${tableName}.mst_bank_custody_id = mst_bank_custody.id
+      WHERE trx_rekap.tipe = 'porto'
+      AND trx_rekap.subtipe = '${subtipe}'
+      AND trx_rekap.tahun IN (:list_month)
+      AND trx_rekap.end_year = 1
+    `;
+    }
 
     if (issuer !== "all") {
       query += ` AND ${tableName}.mst_issuer_id = :issuer`;
+    }
+    if (custody !== "all") {
+      query += ` AND ${tableName}.mst_bank_custody_id = :custody`;
     }
     query += ` GROUP BY ${joinTable}.nama
     ORDER BY ${joinTable}.nama ASC;`;
@@ -86,6 +124,7 @@ const detailSummary = async (req, res) => {
     const options = {
       replacements: {
         list_month: list_period,
+        custody: custody,
         issuer: issuer,
       },
       type: db.Sequelize.QueryTypes.SELECT,
@@ -119,7 +158,9 @@ const multiPorto = async (req, res) => {
   try {
     let {
       type,
-      list_date,
+      // list_date,
+      start_date,
+      range,
       custody,
       issuer,
       kbmi,
@@ -129,12 +170,13 @@ const multiPorto = async (req, res) => {
       subtipe,
     } = req.body;
 
-    if (list_date === undefined || list_date.length === 0) {
-      return res.status(200).json({
-        code: 400,
-        data: null,
-        error: "List date cannot be empty",
-      });
+    let list_period = [];
+    for (let i = 0; i < range; i++) {
+      if (type === "monthly") {
+        list_period.push(moment(start_date).add(i, "months").format("YYYY-MM"));
+      } else if (type === "yearly") {
+        list_period.push(moment(start_date).add(i, "years").format("YYYY"));
+      }
     }
 
     let sb = ``;
@@ -244,7 +286,7 @@ const multiPorto = async (req, res) => {
     }
     const options = {
       replacements: {
-        list_month: list_date,
+        list_month: list_period,
         type: type,
         custody: custody,
         issuer: issuer,
@@ -342,7 +384,7 @@ const comparison = async (req, res) => {
 const uploadExcel = async (req, res) => {
   try {
     const result = await db.sequelize.transaction(async (t) => {
-      const { data: dataXLS, fileName, session } = req.body;
+      let { data: dataXLS, fileName, session } = req.body;
       const user_id = JSON.parse(session).user.id;
       const bankCustody = await db.user.findOne({
         where: {
@@ -388,7 +430,12 @@ const uploadExcel = async (req, res) => {
 
       let validationStatus = true;
       let index = 0;
+
       for (const row of dataXLS) {
+        row.IssuedDate = row.IssuedDate?.replace(/\s/g, "") || undefined;
+        row.MaturityDate = row.MaturityDate?.replace(/\s/g, "") || undefined;
+        row.InterestDate = row.InterestDate?.replace(/\s/g, "") || undefined;
+
         let validationNote = ``;
         // validating data
         let mst_issuer_id,
@@ -423,53 +470,114 @@ const uploadExcel = async (req, res) => {
         }
 
         // check if kode kbmi exists
-        let indexKbmi = data.kbmi.kode.indexOf(row.KBMI);
-        if (indexKbmi === -1) {
-          validationStatus = false;
-          validationNote += `Kode KBMI tidak ditemukan. `;
+        // check if row.kbmi is not null or undefined first, if it is then pass
+        if (row.KBMI !== null && row.KBMI !== undefined) {
+          let indexKbmi = data.kbmi.kode.indexOf(row.KBMI);
+          if (indexKbmi === -1) {
+            validationStatus = false;
+            validationNote += `Kode KBMI tidak ditemukan. `;
+          } else {
+            mst_kbmi_id = data.kbmi.id[indexKbmi];
+          }
+        }
+
+        if (row.IssuedDate !== undefined) {
+          if (!moment(row.IssuedDate, "DD/MM/YYYY", true).isValid()) {
+            validationStatus = false;
+            validationNote += `Issued Date tidak valid. `;
+          }
         } else {
-          mst_kbmi_id = data.kbmi.id[indexKbmi];
+          row.IssuedDate = null;
+          validationStatus = false;
+          validationNote += `Issued Date tidak boleh kosong. `;
+        }
+
+        if (row.MaturityDate !== undefined) {
+          if (!moment(row.MaturityDate, "DD/MM/YYYY", true).isValid()) {
+            validationStatus = false;
+            validationNote += `Maturity Date tidak valid. `;
+          }
+        } else {
+          row.MaturityDate = null;
+          validationStatus = false;
+          validationNote += `Maturity Date tidak boleh kosong. `;
+        }
+
+        if (row.InterestDate !== undefined) {
+          if (!moment(row.InterestDate, "DD/MM/YYYY", true).isValid()) {
+            validationStatus = false;
+            validationNote += `Interest Date tidak valid. `;
+          }
+        } else {
+          row.InterestDate = null;
+        }
+
+        if (row.SisaTenor !== null && row.SisaTenor !== undefined) {
+          if (isNaN(row.SisaTenor)) {
+            validationStatus = false;
+            validationNote += `Sisa Tenor tidak valid. `;
+          }
+        }
+
+        if (row.Rate !== null && row.Rate !== undefined) {
+          if (isNaN(row.Rate)) {
+            validationStatus = false;
+            validationNote += `Rate tidak valid. `;
+          }
         }
 
         // check if kode kepemilikan exists
-        let indexKepemilikan = data.kepemilikan.kode.indexOf(row.Kepemilikan);
-        if (indexKepemilikan === -1) {
-          validationStatus = false;
-          validationNote += `Kode Kepemilikan tidak ditemukan. `;
-        } else {
-          mst_kepemilikan_id = data.kepemilikan.id[indexKepemilikan];
+        if (row.Kepemilikan !== null && row.Kepemilikan !== undefined) {
+          let indexKepemilikan = data.kepemilikan.kode.indexOf(row.Kepemilikan);
+          if (indexKepemilikan === -1) {
+            validationStatus = false;
+            validationNote += `Kode Kepemilikan tidak ditemukan. `;
+          } else {
+            mst_kepemilikan_id = data.kepemilikan.id[indexKepemilikan];
+          }
         }
 
         let pd = Number(data.issuer.pd[indexIssuer]);
         let lgd = Number(data.issuer.lgd[indexIssuer]);
-        let ecl;
-        if (Number(row.SisaTenor) < 360) {
-          ecl =
-            (1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
-            (lgd / 100) *
-            Number(row.Nominal);
-        } else {
-          ecl =
-            ((1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
+        let ecl = 0;
+        // if sisaTenor and rate is not null or undefined
+        if (
+          row.SisaTenor !== null &&
+          row.SisaTenor !== undefined &&
+          row.Rate !== null &&
+          row.Rate !== undefined
+        ) {
+          if (Number(row.SisaTenor) < 360) {
+            ecl =
+              (1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
               (lgd / 100) *
-              Number(row.Nominal)) /
-            Math.pow((1 + 4.87 / 100) ^ (Number(row.SisaTenor) / 360));
+              Number(row.Nominal);
+          } else {
+            ecl =
+              ((1 - Math.pow(1 - pd / 100, Number(row.SisaTenor) / 360)) *
+                (lgd / 100) *
+                Number(row.Nominal)) /
+              Math.pow((1 + 4.87 / 100) ^ (Number(row.SisaTenor) / 360));
+          }
         }
 
         // put validation note into index array
         dataXLS[index]["note"] = validationNote;
         const dateFormat = "DD/MM/YYYY";
         let trx_porto_id = null;
+        row.Tipe = row.Tipe.toLowerCase();
         if (validationNote === ``) {
           let check_trx_porto = await db.trxPorto.findOne({
             where: {
               tipe: row.Tipe,
               mst_issuer_id: mst_issuer_id,
-              start_date: moment(row.IssuedDate, dateFormat).format(
-                "YYYY-MM-DD"
-              ),
+              start_date:
+                row.IssuedDate !== null
+                  ? moment(row.IssuedDate, dateFormat).format("YYYY-MM-DD")
+                  : null,
               nominal: row.Nominal,
             },
+            transaction: t,
           });
           if (check_trx_porto) {
             trx_porto_id = check_trx_porto.id;
@@ -478,15 +586,18 @@ const uploadExcel = async (req, res) => {
                 unique_id: row.UniqueID,
                 no_security: row.NoSecurity,
                 tipe: row.Tipe,
-                start_date: moment(row.IssuedDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
-                end_date: moment(row.MaturityDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
-                interest_date: moment(row.InterestDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
+                start_date:
+                  row.IssuedDate !== null
+                    ? moment(row.IssuedDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
+                end_date:
+                  row.MaturityDate !== null
+                    ? moment(row.MaturityDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
+                interest_date:
+                  row.InterestDate !== null
+                    ? moment(row.InterestDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
                 sisa_tenor: row.SisaTenor,
                 rate: row.Rate,
                 nominal: row.Nominal,
@@ -516,6 +627,7 @@ const uploadExcel = async (req, res) => {
                 subtipe: row.Tipe,
                 trx_porto_id: trx_porto_id,
               },
+              transaction: t,
             });
           } else {
             trx_porto_id = uuidv4();
@@ -525,15 +637,18 @@ const uploadExcel = async (req, res) => {
                 unique_id: row.UniqueID,
                 no_security: row.NoSecurity,
                 tipe: row.Tipe,
-                start_date: moment(row.IssuedDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
-                end_date: moment(row.MaturityDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
-                interest_date: moment(row.InterestDate, dateFormat).format(
-                  "YYYY-MM-DD"
-                ),
+                start_date:
+                  row.IssuedDate !== null
+                    ? moment(row.IssuedDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
+                end_date:
+                  row.MaturityDate !== null
+                    ? moment(row.MaturityDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
+                interest_date:
+                  row.InterestDate !== null
+                    ? moment(row.InterestDate, dateFormat).format("YYYY-MM-DD")
+                    : null,
                 sisa_tenor: row.SisaTenor,
                 rate: row.Rate,
                 nominal: row.Nominal,
@@ -556,42 +671,44 @@ const uploadExcel = async (req, res) => {
           }
 
           // porto rekap
-          let start_date = moment(row.IssuedDate, dateFormat);
-          let end_date = moment(row.MaturityDate, dateFormat);
-          let range_month = end_date.diff(start_date, "months") + 1;
-          let period = [];
-          for (let i = 0; i < range_month; i++) {
-            let new_month = moment(start_date).add(i, "months");
-            period.push({
-              period: new_month.format("YYYY-MM"),
-              tahun: new_month.format("YYYY"),
-              bulan: new_month.format("MM"),
-              end_year: i + 1 === range_month ? 1 : 0,
-            });
-          }
-          await db.trxRekap.destroy({
-            where: {
-              tipe: "porto",
-              subtipe: row.Tipe,
-              trx_porto_id: trx_porto_id,
-            },
-            transaction: t,
-          });
-
-          await db.trxRekap.bulkCreate(
-            period.map((col) => {
-              return {
+          if (row.IssuedDate !== null && row.MaturityDate !== null) {
+            let start_date = moment(row.IssuedDate, dateFormat);
+            let end_date = moment(row.MaturityDate, dateFormat);
+            let range_month = end_date.diff(start_date, "months") + 1;
+            let period = [];
+            for (let i = 0; i < range_month; i++) {
+              let new_month = moment(start_date).add(i, "months");
+              period.push({
+                period: new_month.format("YYYY-MM"),
+                tahun: new_month.format("YYYY"),
+                bulan: new_month.format("MM"),
+                end_year: i + 1 === range_month ? 1 : 0,
+              });
+            }
+            await db.trxRekap.destroy({
+              where: {
                 tipe: "porto",
                 subtipe: row.Tipe,
                 trx_porto_id: trx_porto_id,
-                period: col.period,
-                tahun: col.tahun,
-                bulan: col.bulan,
-                end_year: col.end_year,
-              };
-            }),
-            { transaction: t }
-          );
+              },
+              transaction: t,
+            });
+
+            await db.trxRekap.bulkCreate(
+              period.map((col) => {
+                return {
+                  tipe: "porto",
+                  subtipe: row.Tipe,
+                  trx_porto_id: trx_porto_id,
+                  period: col.period,
+                  tahun: col.tahun,
+                  bulan: col.bulan,
+                  end_year: col.end_year,
+                };
+              }),
+              { transaction: t }
+            );
+          }
         }
         if (validationNote !== ``) {
           validationStatus = false;
@@ -622,11 +739,18 @@ const uploadExcel = async (req, res) => {
           unique_id: row.UniqueID,
           no_security: row.NoSecurity,
           tipe: row.Tipe,
-          start_date: moment(row.IssuedDate, dateFormat).format("YYYY-MM-DD"),
-          end_date: moment(row.MaturityDate, dateFormat).format("YYYY-MM-DD"),
-          interest_date: moment(row.InterestDate, dateFormat).format(
-            "YYYY-MM-DD"
-          ),
+          start_date:
+            row.IssuedDate !== null
+              ? moment(row.IssuedDate, dateFormat).format("YYYY-MM-DD")
+              : null,
+          end_date:
+            row.MaturityDate !== null
+              ? moment(row.MaturityDate, dateFormat).format("YYYY-MM-DD")
+              : null,
+          interest_date:
+            row.InterestDate !== null
+              ? moment(row.InterestDate, dateFormat).format("YYYY-MM-DD")
+              : null,
           sisa_tenor: row.SisaTenor,
           rate: row.Rate,
           nominal: row.Nominal,
@@ -732,7 +856,7 @@ const detailPortoFile = async (req, res) => {
           model: db.kepemilikan,
         },
       ],
-      order: [["created_at", "DESC"]],
+      order: [["created_at", "ASC"]],
     });
 
     let dataPortoFile = await db.trxPortoFile.findOne({
