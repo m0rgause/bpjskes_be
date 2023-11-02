@@ -75,7 +75,17 @@ const summary = async (req, res) => {
 
 const deposito = async (req, res) => {
   try {
-    let { type, startDate, rangeDate, custody, issuer, kbmi, tenor } = req.body;
+    let {
+      type,
+      startDate,
+      rangeDate,
+      custody,
+      issuer,
+      kbmi,
+      tenor,
+      kepemilikan,
+      pengelolaan,
+    } = req.body;
 
     let period = [];
     for (let mth = 0; mth < rangeDate; mth++) {
@@ -153,6 +163,19 @@ const deposito = async (req, res) => {
       query += `AND mst_tenor.id = :tenor `;
       queryTable += `AND mst_tenor.id = :tenor `;
     }
+    if (kepemilikan !== "all") {
+      query += `AND mst_kepemilikan.id = :kepemilikan `;
+      queryTable += `AND mst_kepemilikan.id = :kepemilikan `;
+    }
+    if (pengelolaan !== "all") {
+      query += `AND mst_pengelolaan.id = :pengelolaan `;
+      queryTable += `AND mst_pengelolaan.id = :pengelolaan `;
+    }
+    if (kbmi !== "all") {
+      query += `AND mst_kbmi.id = :kbmi `;
+      queryTable += `AND mst_kbmi.id = :kbmi `;
+    }
+
     query += `GROUP BY mst_bank_custody.nama, ${list_group}
     ORDER BY ${list_group} ASC;`;
     queryTable += `ORDER BY ${list_group};`;
@@ -194,7 +217,17 @@ const deposito = async (req, res) => {
 
 const obligasi = async (req, res) => {
   try {
-    let { type, rangeDate, startDate, custody, issuer, tenor } = req.body;
+    let {
+      type,
+      rangeDate,
+      startDate,
+      custody,
+      issuer,
+      tenor,
+      kepemilikan,
+      pengelolaan,
+      kbmi,
+    } = req.body;
 
     let period = [];
     for (let mth = 0; mth < rangeDate; mth++) {
@@ -269,6 +302,19 @@ const obligasi = async (req, res) => {
       query += `AND mst_tenor.id = :tenor `;
       queryTable += `AND mst_tenor.id = :tenor `;
     }
+    if (kepemilikan !== "all") {
+      query += `AND mst_kepemilikan.id = :kepemilikan `;
+      queryTable += `AND mst_kepemilikan.id = :kepemilikan `;
+    }
+    if (pengelolaan !== "all") {
+      query += `AND mst_pengelolaan.id = :pengelolaan `;
+      queryTable += `AND mst_pengelolaan.id = :pengelolaan `;
+    }
+    if (kbmi !== "all") {
+      query += `AND mst_kbmi.id = :kbmi `;
+      queryTable += `AND mst_kbmi.id = :kbmi `;
+    }
+
     query += `GROUP BY mst_bank_custody.nama, ${list_group}
     ORDER BY ${list_group} ASC;`;
     queryTable += `ORDER BY ${list_group};`;

@@ -371,30 +371,52 @@ const uploadTWRRFile = async (req, res) => {
         if (validationNote === ``) {
           totalAfterCash = Number(assetsTotal) - Number(liabilitiesTotal);
           totalBeforeCash = totalAfterCash - Number(row.AdjusmentCF ?? 0);
-
-          let TWRRDataLast = await db.trxTwrr.findOne({
+          let totalAfterCashYtd = await db.trxTwrr.findOne({
             attributes: ["total_after_cash"],
-            order: [["tanggal", "DESC"]],
-          });
-          returnHarian =
-            ((totalBeforeCash - (TWRRDataLast?.total_after_cash ?? 0)) /
-              totalBeforeCash) *
-            100;
-          let tglMoment = moment(row.Date, "DD/MM/YYYY");
-          let period = tglMoment.format("YYYY-MM");
-          let tahun = tglMoment.format("YYYY");
-          let bulan = tglMoment.format("MM");
-          let TWRRDataSumLast = await db.sequelize.query(
-            `SELECT SUM(return_harian) as return_harian FROM trx_twrr WHERE TO_CHAR(tanggal, 'YYYY-MM') = :period`,
-            {
-              replacements: {
-                period: period,
+            where: {
+              tanggal: {
+                [Op.lte]: moment(row.Date, "DD/MM/YYYY")
+                  .subtract(1, "days")
+                  .format("YYYY-MM-DD"),
               },
-              type: db.Sequelize.QueryTypes.SELECT,
-            }
-          );
-          returnAkumulasi =
-            (TWRRDataSumLast[0]?.return_harian ?? 0) + returnHarian;
+            },
+            transaction: t,
+          });
+          if (totalAfterCashYtd) {
+            returnHarian =
+              (totalBeforeCash /
+                Number(totalAfterCashYtd?.total_after_cash ?? 0) -
+                1) *
+              100;
+          } else {
+            returnHarian = 0;
+          }
+
+          if (moment(row.Date, "DD/MM/YYYY").format("DD") === "01") {
+            returnAkumulasi = returnHarian;
+          } else {
+            //  sum return_harian from 1st day of the month
+            const returnAkumulasiYtd = await db.sequelize.query(
+              `SELECT sum(return_harian) as return_akumulasi FROM trx_twrr
+              WHERE 
+              tanggal <= :yesterday
+              AND to_char(tanggal, 'YYYY-MM') = :period
+              `,
+              {
+                replacements: {
+                  period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+                  yesterday: moment(row.Date, "DD/MM/YYYY")
+                    .subtract(1, "days")
+                    .format("YYYY-MM-DD"),
+                },
+                type: db.Sequelize.QueryTypes.SELECT,
+                transaction: t,
+              }
+            );
+            returnAkumulasi =
+              returnAkumulasiYtd[0]["return_akumulasi"] + returnHarian;
+          }
+
           const checkTWRR = await db.trxTwrr.findOne({
             where: {
               tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
@@ -453,11 +475,24 @@ const uploadTWRRFile = async (req, res) => {
             ],
             where: {
               tipe: "twrr",
-              tahun: tahun,
-              bulan: bulan,
+              tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+              bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
             },
             transaction: t,
           });
+          let endYear = 0;
+          if (
+            moment(row.Date, "DD/MM/YYYY").format("MM") === "12" &&
+            moment(row.Date, "DD/MM/YYYY").format("DD") === "31"
+          ) {
+            endYear = 1;
+          } else if (
+            moment(row.Date, "DD/MM/YYYY").format("YYYY") ===
+              moment().format("YYYY") &&
+            moment(row.Date, "DD/MM/YYYY").format("MM") >= moment().format("MM")
+          ) {
+            endYear = 1;
+          }
 
           if (checkRekap) {
             // row.Date > checkRekap.trx_twrr.tanggal
@@ -465,13 +500,24 @@ const uploadTWRRFile = async (req, res) => {
               moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD") >
               checkRekap.trx_twrr.tanggal
             ) {
+              // get id where tahun = tahun and bulan = bulan order by tanggal desc limit 1
+              const getIdTwrr = await db.sequelize.query(
+                `SELECT id FROM trx_twrr WHERE to_char(tanggal, 'YYYY-MM') = :period ORDER BY tanggal DESC LIMIT 1`,
+                {
+                  replacements: {
+                    period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+                  },
+                  type: db.Sequelize.QueryTypes.SELECT,
+                  transaction: t,
+                }
+              );
               await db.trxRekap.update(
                 {
-                  trx_twrr_id: trx_twrr_id,
-                  period: period,
-                  tahun: tahun,
-                  bulan: bulan,
-                  end_year: bulan === "12" ? 1 : 0,
+                  trx_twrr_id: getIdTwrr[0].id,
+                  period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+                  tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+                  bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+                  end_year: endYear,
                 },
                 {
                   where: {
@@ -487,12 +533,24 @@ const uploadTWRRFile = async (req, res) => {
                 id: uuidv4(),
                 tipe: "twrr",
                 trx_twrr_id: trx_twrr_id,
-                period: period,
-                tahun: tahun,
-                bulan: bulan,
-                end_year: bulan === "12" ? 1 : 0,
+                period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+                tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+                bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+                end_year: endYear,
               },
               {
+                transaction: t,
+              }
+            );
+            // update rekap set end_year = 0 where tahun = tahun and bulan < bulan
+            await db.sequelize.query(
+              `UPDATE trx_rekap SET end_year = 0 WHERE tahun = :tahun AND bulan < :bulan`,
+              {
+                replacements: {
+                  tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+                  bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+                },
+                type: db.Sequelize.QueryTypes.UPDATE,
                 transaction: t,
               }
             );

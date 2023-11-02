@@ -332,7 +332,7 @@ const comparison = async (req, res) => {
 
     let query = ``;
     if (type === "monthly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
+      query = `SELECT trx_rekap.period, trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -341,7 +341,7 @@ const comparison = async (req, res) => {
       AND trx_rekap.period IN (:list_date)
       `;
     } else if (type === "yearly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
+      query = `SELECT trx_rekap.tahun as period, trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -354,8 +354,16 @@ const comparison = async (req, res) => {
     if (issuer !== "all") {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
     }
-    query += ` GROUP BY trx_porto.tipe, mst_bank_custody.nama
+    if (custody !== "all") {
+      query += ` AND trx_porto.mst_bank_custody_id = :custody`;
+    }
+    if (type === "monthly") {
+      query += ` GROUP BY trx_porto.tipe,trx_rekap.period, mst_bank_custody.nama
       ORDER BY trx_porto.tipe ASC;`;
+    } else if (type === "yearly") {
+      query += ` GROUP BY trx_porto.tipe,trx_rekap.tahun, mst_bank_custody.nama
+      ORDER BY trx_porto.tipe ASC;`;
+    }
 
     const options = {
       replacements: {
@@ -678,11 +686,21 @@ const uploadExcel = async (req, res) => {
             let period = [];
             for (let i = 0; i < range_month; i++) {
               let new_month = moment(start_date).add(i, "months");
+              let endYear = 0;
+
+              if (new_month.format("MM") === "12") {
+                endYear = 1;
+              } else if (
+                new_month.format("YYYY") === moment().format("YYYY") &&
+                new_month.format("MM") === moment().format("MM")
+              ) {
+                endYear = 1;
+              }
               period.push({
                 period: new_month.format("YYYY-MM"),
                 tahun: new_month.format("YYYY"),
                 bulan: new_month.format("MM"),
-                end_year: i + 1 === range_month ? 1 : 0,
+                end_year: endYear,
               });
             }
             await db.trxRekap.destroy({

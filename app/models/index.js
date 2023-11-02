@@ -1,4 +1,12 @@
-const config = require("../config/db.config.js");
+const config = require("../config/db.config.mssql.js");
+config
+  .authenticate({ logging: false, benchmark: true, timeout: 10000 })
+  .then(() => {
+    console.log("Connection successful");
+  })
+  .catch((error) => {
+    console.error("Connection failed", error);
+  });
 const Sequelize = require("sequelize");
 const db = {};
 
