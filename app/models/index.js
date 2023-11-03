@@ -1,4 +1,4 @@
-const config = require("../config/db.config.mssql.js");
+const config = require("../config/db.config.js");
 config
   .authenticate({ logging: false, benchmark: true, timeout: 10000 })
   .then(() => {

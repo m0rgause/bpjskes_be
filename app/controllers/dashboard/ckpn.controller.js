@@ -3,7 +3,7 @@ const moment = require("moment");
 
 const summary = async (req, res) => {
   try {
-    let { type, listDate, startDate, rangeDate, issuer, custody } = req.body;
+    let { type, startDate, rangeDate, issuer, custody } = req.body;
 
     let period = [];
     for (let mth = 0; mth < rangeDate; mth++) {
@@ -397,6 +397,10 @@ const comparison = async (req, res) => {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
     }
 
+    if (custody !== "all") {
+      query += ` AND trx_porto.mst_bank_custody_id = :custody`;
+    }
+
     query += `
       GROUP BY mst_issuer.nama, mst_issuer.urutan, mst_bank_custody.nama ${list_group}
       ORDER BY mst_issuer.urutan ASC;
@@ -406,6 +410,7 @@ const comparison = async (req, res) => {
       replacements: {
         list_date: list_date,
         issuer: issuer,
+        custody: custody,
       },
       type: db.Sequelize.QueryTypes.SELECT,
     };
@@ -429,7 +434,7 @@ const comparison = async (req, res) => {
 
 const detail = async (req, res) => {
   try {
-    let { start, end, range, issuer, custody } = req.body;
+    let { start, range, issuer, custody } = req.body;
     // change range to positive
     range = Math.abs(Number(range));
 
