@@ -13,7 +13,7 @@ const findAll = (req, res) => {
     TWRRCOA.findAndCountAll({
       where: {
         label: {
-          [Op.iLike]: `%${search}%`,
+          [Op.like]: `%${search}%`,
         },
       },
       offset: start,

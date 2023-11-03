@@ -3,7 +3,7 @@ const moment = require("moment");
 
 const summary = async (req, res) => {
   try {
-    let { type, listDate, startDate, rangeDate, issuer, custody } = req.body;
+    let { type, startDate, rangeDate, issuer, custody } = req.body;
 
     let period = [];
     for (let mth = 0; mth < rangeDate; mth++) {
@@ -27,7 +27,7 @@ const summary = async (req, res) => {
     }
 
     query = `SELECT 
-    mst_issuer.nama, SUM(ecl), mst_issuer.warna, mst_bank_custody.nama as custody ${list_select}
+    mst_issuer.nama, SUM(ecl) as sum, mst_issuer.warna, mst_bank_custody.nama as custody ${list_select}
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -109,7 +109,7 @@ const deposito = async (req, res) => {
     }
 
     query = `SELECT 
-    SUM(ecl), mst_bank_custody.nama as "nama_custody" ${list_select}
+    SUM(ecl) as sum, mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -120,7 +120,7 @@ const deposito = async (req, res) => {
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.subtipe = 'deposito'
-    AND mst_tenor.tipe ILIKE '%deposito%'
+    AND mst_tenor.tipe LIKE '%deposito%'
 `;
     queryTable = `
     SELECT mst_issuer.nama as "nama_issuer", mst_kbmi.nama as "nama_kbmi", mst_kepemilikan.nama as "nama_kepemilikan", mst_pengelolaan.nama as "nama_pengelolaan", mst_tenor.nama as "nama_tenor", trx_porto.*, mst_bank_custody.nama as "nama_custody" ${list_select}
@@ -134,7 +134,7 @@ const deposito = async (req, res) => {
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.subtipe = 'deposito'
-    AND mst_tenor.tipe ILIKE '%deposito%'
+    AND mst_tenor.tipe LIKE '%deposito%'
     `;
 
     if (type === "monthly") {
@@ -252,7 +252,7 @@ const obligasi = async (req, res) => {
     }
 
     query = `SELECT 
-    SUM(ecl), mst_bank_custody.nama as "nama_custody" ${list_select}
+    SUM(ecl) as sum, mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -263,7 +263,7 @@ const obligasi = async (req, res) => {
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.subtipe = 'obligasi'
-    AND mst_tenor.tipe ILIKE '%obligasi%'
+    AND mst_tenor.tipe LIKE '%obligasi%'
 `;
     queryTable = `
     SELECT mst_issuer.nama as "nama_issuer", mst_kbmi.nama as "nama_kbmi", mst_kepemilikan.nama as "nama_kepemilikan", mst_pengelolaan.nama as "nama_pengelolaan", mst_tenor.nama as "nama_tenor", trx_porto.*, mst_bank_custody.nama as "nama_custody" ${list_select}
@@ -277,7 +277,7 @@ const obligasi = async (req, res) => {
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.subtipe = 'obligasi'
-    AND mst_tenor.tipe ILIKE '%obligasi%'
+    AND mst_tenor.tipe LIKE '%obligasi%'
     `;
 
     if (type === "monthly") {
@@ -378,7 +378,7 @@ const comparison = async (req, res) => {
     }
 
     query = `
-      SELECT mst_issuer.nama, SUM(ecl), mst_bank_custody.nama as custody ${list_select}
+      SELECT mst_issuer.nama, SUM(ecl) as sum, mst_bank_custody.nama as custody ${list_select}
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -396,6 +396,9 @@ const comparison = async (req, res) => {
     if (issuer !== "all") {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
     }
+    if (custody !== "all") {
+      query += ` AND trx_porto.mst_bank_custody_id = :custody`;
+    }
 
     query += `
       GROUP BY mst_issuer.nama, mst_issuer.urutan, mst_bank_custody.nama ${list_group}
@@ -406,6 +409,7 @@ const comparison = async (req, res) => {
       replacements: {
         list_date: list_date,
         issuer: issuer,
+        custody: custody,
       },
       type: db.Sequelize.QueryTypes.SELECT,
     };
@@ -418,7 +422,6 @@ const comparison = async (req, res) => {
       error: null,
     });
   } catch (error) {
-    console.error("Error:", error);
     return res.status(500).json({
       code: 500,
       data: null,

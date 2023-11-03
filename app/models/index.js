@@ -1,6 +1,6 @@
 const config = require("../config/db.config.mssql.js");
 config
-  .authenticate({ logging: false, benchmark: true, timeout: 10000 })
+  .authenticate({ logging: false, benchmark: true, timeout: 15000 })
   .then(() => {
     console.log("Connection successful");
   })

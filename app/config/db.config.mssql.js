@@ -1,5 +1,6 @@
 const { Sequelize } = require("sequelize");
 
+// Server=192.168.1.100\SQLEXPRESS,1433;Database=MyDatabase;User ID=MyUser;Password=MyPassword
 const sequelize = new Sequelize({
   dialect: "mssql",
   host: "localhost",
@@ -8,14 +9,22 @@ const sequelize = new Sequelize({
       type: "default",
       options: {
         userName: "sa",
-        password: "934534055qwe",
+        password: "93534055qwe",
       },
     },
     options: {
       instanceName: "SQLEXPRESS",
+      trustedConnection: true,
       database: "BPJSKES",
     },
   },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000, // 30 seconds
+    idle: 10000, // 10 seconds
+  },
+  logging: false,
 });
 
 module.exports = sequelize;

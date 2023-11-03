@@ -4,9 +4,11 @@ const Op = db.Sequelize.Op;
 
 // get all data
 const findAll = (req, res) => {
-  const { start, end, search } = req.query;
+  let { start, end, search } = req.query;
+  start = Number(start);
+  end = Number(end);
   const limit = end - start + 1;
-  var condition = search ? { nama: { [Op.iLike]: `%${search}%` } } : null;
+  var condition = search ? { nama: { [Op.like]: `%${search}%` } } : null;
 
   Rating.findAndCountAll({
     where: condition,

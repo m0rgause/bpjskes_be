@@ -8,10 +8,11 @@ const getAll = async (req, res) => {
     const title = req.query.title === "" ? null : req.query.title;
     const pid = req.query.pid ?? null;
     const id = req.params.id ?? [];
-    let query = ` select id, nama AS title, icon, path AS url, length(urutan_path)-2 AS pos, REPLACE(urutan_path, ',', '-') as urutan_path from aut_access `;
+    console.log(pid);
+    let query = ` select id, nama AS title, icon, path AS url, LEN(urutan_path)-2 AS pos, REPLACE(urutan_path, ',', '-') as urutan_path from aut_access `;
 
     if (title) {
-      query += ` where nama ilike '%${title}%' `;
+      query += ` where nama like '%${title.toLowerCase()}%' `;
     }
 
     if (pid === 1 || pid === "1") {

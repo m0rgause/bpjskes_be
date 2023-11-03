@@ -12,13 +12,13 @@ const getAll = async (req, res) => {
       attributes: ["id", "nama", "landing"],
       distinct: true, // To mimic "exact" count behavior
       where: {},
-      offset: startRange,
-      limit: endRange - startRange + 1,
+      offset: Number(startRange),
+      limit: Number(endRange) - Number(startRange) + 1,
       order: [["nama", "ASC"]],
     };
 
     if (nama) {
-      options.where.nama = { [Op.iLike]: `%${nama}%` };
+      options.where.nama = { [Op.like]: `%${nama.toLowerCase()}%` };
     }
 
     const group = await Group.findAndCountAll(options);

@@ -18,14 +18,14 @@ const summary = async (req, res) => {
 
     let query = ``;
     if (type === "monthly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal)
+      query = `SELECT trx_porto.tipe, SUM(nominal) as sum
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     WHERE trx_rekap.tipe = 'porto'
     AND trx_rekap.period IN (:list_month)
     `;
     } else if (type === "yearly") {
-      query = `SELECT trx_porto.tipe, SUM(nominal)
+      query = `SELECT trx_porto.tipe, SUM(nominal) as sum
     FROM trx_porto
     JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
     WHERE trx_rekap.tipe = 'porto'
@@ -201,7 +201,7 @@ const multiPorto = async (req, res) => {
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.period IN (:list_month)
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+      AND mst_tenor.tipe LIKE '%${subtipe}%'
     `;
 
       queryTable += `
@@ -216,7 +216,7 @@ const multiPorto = async (req, res) => {
       WHERE trx_rekap.tipe = 'porto'
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.period IN (:list_month)
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+      AND mst_tenor.tipe LIKE '%${subtipe}%'
     `;
     } else if (type === "yearly") {
       query += `
@@ -232,7 +232,7 @@ const multiPorto = async (req, res) => {
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.tahun IN (:list_month)
       AND trx_rekap.end_year = 1
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+      AND mst_tenor.tipe LIKE '%${subtipe}%'
     `;
       queryTable += `
       SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.*, mst_bank_custody.nama as "custody" ${sbSelect}
@@ -247,7 +247,7 @@ const multiPorto = async (req, res) => {
       AND trx_rekap.subtipe = :subtipe
       AND trx_rekap.tahun IN (:list_month)
       AND trx_rekap.end_year = 1
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+      AND mst_tenor.tipe LIKE '%${subtipe}%'
     `;
     }
 
@@ -332,7 +332,7 @@ const comparison = async (req, res) => {
 
     let query = ``;
     if (type === "monthly") {
-      query = `SELECT trx_rekap.period, trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
+      query = `SELECT trx_rekap.period, trx_porto.tipe, SUM(nominal) sum, mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
@@ -341,7 +341,7 @@ const comparison = async (req, res) => {
       AND trx_rekap.period IN (:list_date)
       `;
     } else if (type === "yearly") {
-      query = `SELECT trx_rekap.tahun as period, trx_porto.tipe, SUM(nominal), mst_bank_custody.nama as "custody"
+      query = `SELECT trx_rekap.tahun as period, trx_porto.tipe, SUM(nominal) sum, mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN trx_rekap ON trx_rekap.trx_porto_id = trx_porto.id
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id

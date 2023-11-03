@@ -397,10 +397,10 @@ const uploadTWRRFile = async (req, res) => {
           } else {
             //  sum return_harian from 1st day of the month
             const returnAkumulasiYtd = await db.sequelize.query(
-              `SELECT sum(return_harian) as return_akumulasi FROM trx_twrr
+              `SELECT sum(return_harian) as return_akumulasi FROM dbo.trx_twrr
               WHERE 
               tanggal <= :yesterday
-              AND to_char(tanggal, 'YYYY-MM') = :period
+              AND FORMAT(tanggal, 'yyyy-MM') = :period
               `,
               {
                 replacements: {
@@ -421,6 +421,7 @@ const uploadTWRRFile = async (req, res) => {
             where: {
               tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
             },
+            transaction: t,
           });
 
           if (checkTWRR) {
@@ -466,6 +467,7 @@ const uploadTWRRFile = async (req, res) => {
               }
             );
           }
+
           const checkRekap = await db.trxRekap.findOne({
             include: [
               {
@@ -480,6 +482,7 @@ const uploadTWRRFile = async (req, res) => {
             },
             transaction: t,
           });
+
           let endYear = 0;
           if (
             moment(row.Date, "DD/MM/YYYY").format("MM") === "12" &&
@@ -502,7 +505,7 @@ const uploadTWRRFile = async (req, res) => {
             ) {
               // get id where tahun = tahun and bulan = bulan order by tanggal desc limit 1
               const getIdTwrr = await db.sequelize.query(
-                `SELECT id FROM trx_twrr WHERE to_char(tanggal, 'YYYY-MM') = :period ORDER BY tanggal DESC LIMIT 1`,
+                `SELECT TOP 1 id FROM trx_twrr WHERE FORMAT(tanggal, 'yyyy-MM') = :period ORDER BY tanggal DESC`,
                 {
                   replacements: {
                     period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
@@ -556,6 +559,7 @@ const uploadTWRRFile = async (req, res) => {
             );
           }
         }
+
         if (validationNote !== ``) {
           trx_twrr_id = null;
           validationStatus = false;

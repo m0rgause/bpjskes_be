@@ -5,13 +5,13 @@ const Op = db.Sequelize.Op;
 // get all data
 const findAll = (req, res) => {
   const { start, end, search } = req.query;
-  const limit = end - start + 1;
-  var condition = search ? { nama: { [Op.iLike]: `%${search}%` } } : null;
+  const limit = Number(end) - Number(start) + 1;
+  var condition = search ? { nama: { [Op.like]: `%${search}%` } } : null;
 
   Issuer.findAndCountAll({
     where: condition,
     limit,
-    offset: start,
+    offset: Number(start),
     include: {
       model: db.rating,
     },

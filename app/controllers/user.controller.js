@@ -29,7 +29,9 @@ const getAll = async (req, res) => {
     };
 
     if (email) {
-      options.where.email = { [db.Sequelize.Op.iLike]: `%${email}%` };
+      options.where.email = {
+        [db.Sequelize.Op.like]: `%${email.toLowerCase()}%`,
+      };
     }
 
     const users = await User.findAndCountAll(options);
@@ -202,8 +204,9 @@ const checkAuth = async (req, res) => {
     let email = req.body.email;
     // get path
     let path = req.body.path;
-    path = path.split("/");
-    path = path[1] + "/" + path[2];
+    // can path splited?
+    path = path?.split("/");
+    path = path[1] + "/" + (path[2] ?? "");
 
     const aut_user = await User.findOne({
       where: { email: email },
@@ -222,7 +225,7 @@ const checkAuth = async (req, res) => {
           model: db.access,
           where: {
             path: {
-              [db.Sequelize.Op.iLike]: `%${path}%`,
+              [db.Sequelize.Op.like]: `%${path.toLowerCase()}%`,
             },
           },
           attributes: ["path"],

@@ -5,13 +5,13 @@ const Op = db.Sequelize.Op;
 const findAll = (req, res) => {
   const { start, end, search, table } = req.query;
 
-  const limit = end - start + 1;
-  var condition = search ? { nama: { [Op.iLike]: `%${search}%` } } : null;
+  const limit = Number(end) - Number(start) + 1;
+  var condition = search ? { nama: { [Op.like]: `%${search}%` } } : null;
   db[table]
     .findAndCountAll({
       where: condition,
       limit,
-      offset: start,
+      offset: Number(start),
       order: [["urutan", "ASC"]],
     })
     .then((data) => {
@@ -31,7 +31,6 @@ const findSelect = (req, res) => {
   const { table } = req.params;
   const { tipe } = req.query || "";
 
-  // console.log(table);
   let options = {
     attributes: ["id", "kode", "nama"],
     order: [["urutan", "ASC"]],
@@ -42,7 +41,7 @@ const findSelect = (req, res) => {
       order: [["urutan", "ASC"]],
       where: {
         tipe: {
-          [Op.iLike]: `%${tipe}%`,
+          [Op.like]: `%${tipe}%`,
         },
       },
     };
