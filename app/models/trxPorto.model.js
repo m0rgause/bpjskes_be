@@ -11,35 +11,35 @@ module.exports = (sequelize, Sequelize) => {
       },
       trx_porto_file_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        // allowNull: false,
       },
       mst_issuer_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        // allowNull: false,
       },
       mst_kbmi_id: {
         type: DataTypes.UUID,
-        allowNull: true,
+        // allowNull: true,
       },
       mst_kepemilikan_id: {
         type: DataTypes.UUID,
-        allowNull: true,
+        // allowNull: true,
       },
       mst_pengelolaan_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        // allowNull: false,
       },
       mst_tenor_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        // allowNull: false,
       },
       tipe: {
         type: DataTypes.STRING(25),
-        allowNull: false,
+        // allowNull: false,
       },
       unique_id: {
         type: DataTypes.STRING(255),
-        allowNull: false,
+        // allowNull: false,
       },
       no_security: {
         type: DataTypes.STRING(255),
@@ -55,7 +55,7 @@ module.exports = (sequelize, Sequelize) => {
       },
       nominal: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
+        // allowNull: false,
       },
       sisa_tenor: {
         type: DataTypes.NUMERIC,
@@ -67,15 +67,15 @@ module.exports = (sequelize, Sequelize) => {
       },
       pd: {
         type: DataTypes.REAL,
-        allowNull: false,
+        // allowNull: false,
       },
       lgd: {
         type: DataTypes.REAL,
-        allowNull: false,
+        // allowNull: false,
       },
       ecl: {
         type: DataTypes.NUMERIC,
-        allowNull: false,
+        // allowNull: false,
       },
       created_at: {
         type: DataTypes.DATE,
@@ -86,6 +86,9 @@ module.exports = (sequelize, Sequelize) => {
       },
       mst_bank_custody_id: {
         type: DataTypes.UUID,
+      },
+      tanggal: {
+        type: DataTypes.DATEONLY,
       },
     },
     {

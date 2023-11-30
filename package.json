@@ -20,6 +20,7 @@
     "express-basic-auth": "^1.2.1",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "msnodesqlv8": "^4.1.1",
     "mssql": "^10.0.1",

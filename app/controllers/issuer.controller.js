@@ -1,4 +1,5 @@
 const db = require("../models");
+const { v4: uuidv4 } = require("uuid");
 const Issuer = db.issuer;
 const Op = db.Sequelize.Op;
 
@@ -81,6 +82,7 @@ const create = (req, res) => {
 
   // Create a data
   const data = {
+    id: uuidv4(),
     kode: req.body.kode,
     nama: req.body.nama,
     mst_rating_id: req.body.rating,
@@ -89,6 +91,19 @@ const create = (req, res) => {
     lgd: req.body.lgd,
     warna: req.body.warna,
   };
+  // cek duplikasi
+  Issuer.findOne({
+    where: { kode: data.kode },
+  }).then((result) => {
+    if (result) {
+      res.status(200).send({
+        code: 400,
+        data: null,
+        error: "Kode sudah ada",
+      });
+      return;
+    }
+  });
 
   // Save data in the database
   Issuer.create(data)

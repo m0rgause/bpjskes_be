@@ -4,8 +4,10 @@ const app = express();
 const port = 3030;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.urlencoded({ extended: true, limit: "50mb", parameterLimit: 50000 })
+);
 
 require("dotenv").config();
 const auth_user = process.env.AUTH_USER;

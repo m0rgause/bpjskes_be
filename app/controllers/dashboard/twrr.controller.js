@@ -241,6 +241,7 @@ const detailTWRRFile = async (req, res) => {
           model: db.trxTwrr,
         },
       ],
+      order: [["tanggal", "ASC"]],
     });
 
     let dataFile = await db.trxTwrrFile.findOne({
@@ -265,7 +266,6 @@ const detailTWRRFile = async (req, res) => {
     });
   }
 };
-
 const uploadTWRRFile = async (req, res) => {
   // const t = await db.sequelize.transaction();
   let trx_twrr_file_id = uuidv4();
@@ -341,23 +341,21 @@ const uploadTWRRFile = async (req, res) => {
         dataXLS[index]["note"] = validationNote;
 
         let trx_twrr_id = null;
-        let totalAfterCash = 0,
-          totalBeforeCash = 0,
-          returnHarian = 0,
-          returnAkumulasi = 0;
+        let totalAfterCash = Number(row.TotalSesudahExternalCash ?? 0),
+          totalBeforeCash = Number(row.TotalSebelumExternalCash ?? 0),
+          returnHarian = row.ReturnHarian ?? 0,
+          returnAkumulasi = row.ReturnAkumulasi ?? 0;
+
+        // cek length return harian dan return akumulasi
+        if (returnHarian.length > 10 || returnAkumulasi.length > 10) {
+          // ubah returnHarian menjadi persen
+          returnHarian = Number(returnHarian) * 100;
+          returnAkumulasi = Number(returnAkumulasi) * 100;
+        }
+
         const listForUpdate = {};
 
-        let assetsTotal = 0;
-        let liabilitiesTotal = 0;
         dataXLSHeaderList.forEach((col) => {
-          let assetsColIdx = listCOAKolomAssets.indexOf(col);
-          if (assetsColIdx !== -1) {
-            assetsTotal += row[col] ? Number(row[col]) : 0;
-          }
-          let liabilitiesColIdx = listCOAKolomLiabilities.indexOf(col);
-          if (liabilitiesColIdx !== -1) {
-            liabilitiesTotal += row[col] ? Number(row[col]) : 0;
-          }
           let CoaKolomXLSIdx = listCOAKolomXLS.indexOf(col);
           if (CoaKolomXLSIdx !== -1) {
             listCOAKolom.forEach((row2) => {
@@ -369,54 +367,6 @@ const uploadTWRRFile = async (req, res) => {
         });
 
         if (validationNote === ``) {
-          totalAfterCash = Number(assetsTotal) - Number(liabilitiesTotal);
-          totalBeforeCash = totalAfterCash - Number(row.AdjusmentCF ?? 0);
-          let totalAfterCashYtd = await db.trxTwrr.findOne({
-            attributes: ["total_after_cash"],
-            where: {
-              tanggal: {
-                [Op.lte]: moment(row.Date, "DD/MM/YYYY")
-                  .subtract(1, "days")
-                  .format("YYYY-MM-DD"),
-              },
-            },
-            transaction: t,
-          });
-          if (totalAfterCashYtd) {
-            returnHarian =
-              (totalBeforeCash /
-                Number(totalAfterCashYtd?.total_after_cash ?? 0) -
-                1) *
-              100;
-          } else {
-            returnHarian = 0;
-          }
-
-          if (moment(row.Date, "DD/MM/YYYY").format("DD") === "01") {
-            returnAkumulasi = returnHarian;
-          } else {
-            //  sum return_harian from 1st day of the month
-            const returnAkumulasiYtd = await db.sequelize.query(
-              `SELECT sum(return_harian) as return_akumulasi FROM trx_twrr
-              WHERE 
-              tanggal <= :yesterday
-              AND to_char(tanggal, 'YYYY-MM') = :period
-              `,
-              {
-                replacements: {
-                  period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
-                  yesterday: moment(row.Date, "DD/MM/YYYY")
-                    .subtract(1, "days")
-                    .format("YYYY-MM-DD"),
-                },
-                type: db.Sequelize.QueryTypes.SELECT,
-                transaction: t,
-              }
-            );
-            returnAkumulasi =
-              returnAkumulasiYtd[0]["return_akumulasi"] + returnHarian;
-          }
-
           const checkTWRR = await db.trxTwrr.findOne({
             where: {
               tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
@@ -623,6 +573,364 @@ const uploadTWRRFile = async (req, res) => {
     });
   }
 };
+
+// const uploadTWRRFile = async (req, res) => {
+//   // const t = await db.sequelize.transaction();
+//   let trx_twrr_file_id = uuidv4();
+//   try {
+//     const result = await db.sequelize.transaction(async (t) => {
+//       const { fileName, data, session } = req.body;
+//       const user_id = JSON.parse(session).user.id;
+//       const bankCustody = await db.user.findOne({
+//         attributes: ["mst_bank_custody_id"],
+//         where: {
+//           id: user_id,
+//         },
+//       });
+
+//       const listCOAKolom = [];
+//       const listCOAKolomXLS = [];
+//       const listCOAKolomAssets = [];
+//       const listCOAKolomLiabilities = [];
+
+//       // get list COA
+//       const listCOA = await db.twrrCoa.findAll({
+//         attributes: ["kolom", "kolom_xls", "tipe"],
+//         order: [
+//           ["tipe", "ASC"],
+//           ["urutan", "ASC"],
+//         ],
+//       });
+
+//       listCOA.forEach((row) => {
+//         listCOAKolom.push(row.kolom);
+//         listCOAKolomXLS.push(row.kolom_xls);
+
+//         if (row.tipe === "assets") {
+//           listCOAKolomAssets.push(row.kolom_xls);
+//         }
+//         if (row.tipe === "liabilities") {
+//           listCOAKolomLiabilities.push(row.kolom_xls);
+//         }
+//       });
+
+//       const dataXLS = xlsx.utils.sheet_to_json(data);
+//       const dataXLSHeader = xlsx.utils.sheet_to_json(data, { header: 1 });
+//       const dataXLSHeaderList = dataXLSHeader[0];
+//       // validating header
+//       let validationHeader = true;
+//       listCOAKolomXLS.forEach((row) => {
+//         if (!dataXLSHeaderList.includes(row)) {
+//           validationHeader = false;
+//         }
+//       });
+//       if (!validationHeader) {
+//         throw new Error("Invalid Header");
+//       }
+
+//       // trx_twrr_file_id = uuidv4();
+//       await db.trxTwrrFile.create({
+//         id: trx_twrr_file_id,
+//         file_name: fileName,
+//         status: false,
+//         aut_user_id: user_id,
+//         created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+//       });
+
+//       let validationStatus = true;
+//       let index = 0;
+//       for (const row of dataXLS) {
+//         let validationNote = ``;
+//         // validating date format
+//         if (!moment(row.Date, "DD/MM/YYYY", true).isValid()) {
+//           validationStatus = false;
+//           validationNote += `Invalid Date. `;
+//         }
+//         dataXLS[index]["note"] = validationNote;
+
+//         let trx_twrr_id = null;
+//         let totalAfterCash = 0,
+//           totalBeforeCash = 0,
+//           returnHarian = 0,
+//           returnAkumulasi = 0;
+//         const listForUpdate = {};
+
+//         let assetsTotal = 0;
+//         let liabilitiesTotal = 0;
+//         dataXLSHeaderList.forEach((col) => {
+//           let assetsColIdx = listCOAKolomAssets.indexOf(col);
+//           if (assetsColIdx !== -1) {
+//             assetsTotal += row[col] ? Number(row[col]) : 0;
+//           }
+//           let liabilitiesColIdx = listCOAKolomLiabilities.indexOf(col);
+//           if (liabilitiesColIdx !== -1) {
+//             liabilitiesTotal += row[col] ? Number(row[col]) : 0;
+//           }
+//           let CoaKolomXLSIdx = listCOAKolomXLS.indexOf(col);
+//           if (CoaKolomXLSIdx !== -1) {
+//             listCOAKolom.forEach((row2) => {
+//               if (row2 === listCOAKolom[CoaKolomXLSIdx]) {
+//                 listForUpdate[row2] = row[col] ? Number(row[col]) : 0;
+//               }
+//             });
+//           }
+//         });
+
+//         if (validationNote === ``) {
+//           totalAfterCash = Number(assetsTotal) - Number(liabilitiesTotal);
+//           totalBeforeCash = totalAfterCash - Number(row.AdjusmentCF ?? 0);
+//           let totalAfterCashYtd = await db.trxTwrr.findOne({
+//             attributes: ["total_after_cash"],
+//             where: {
+//               tanggal: {
+//                 [Op.lte]: moment(row.Date, "DD/MM/YYYY")
+//                   .subtract(1, "days")
+//                   .format("YYYY-MM-DD"),
+//               },
+//             },
+//             transaction: t,
+//           });
+//           if (totalAfterCashYtd) {
+//             returnHarian =
+//               (totalBeforeCash /
+//                 Number(totalAfterCashYtd?.total_after_cash ?? 0) -
+//                 1) *
+//               100;
+//           } else {
+//             returnHarian = 0;
+//           }
+
+//           if (moment(row.Date, "DD/MM/YYYY").format("DD") === "01") {
+//             returnAkumulasi = returnHarian;
+//           } else {
+//             //  sum return_harian from 1st day of the month
+//             const returnAkumulasiYtd = await db.sequelize.query(
+//               `SELECT sum(return_harian) as return_akumulasi FROM trx_twrr
+//               WHERE
+//               tanggal <= :yesterday
+//               AND to_char(tanggal, 'YYYY-MM') = :period
+//               `,
+//               {
+//                 replacements: {
+//                   period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+//                   yesterday: moment(row.Date, "DD/MM/YYYY")
+//                     .subtract(1, "days")
+//                     .format("YYYY-MM-DD"),
+//                 },
+//                 type: db.Sequelize.QueryTypes.SELECT,
+//                 transaction: t,
+//               }
+//             );
+//             returnAkumulasi =
+//               returnAkumulasiYtd[0]["return_akumulasi"] + returnHarian;
+//           }
+
+//           const checkTWRR = await db.trxTwrr.findOne({
+//             where: {
+//               tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
+//             },
+//           });
+
+//           if (checkTWRR) {
+//             trx_twrr_id = checkTWRR.id;
+//             await db.trxTwrr.update(
+//               {
+//                 ...listForUpdate,
+//                 total_before_cash: totalBeforeCash,
+//                 total_after_cash: totalAfterCash,
+//                 return_harian: returnHarian,
+//                 return_akumulasi: returnAkumulasi,
+//                 updated_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+//                 adjustment_cf: row.AdjusmentCF ?? 0,
+//                 tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
+//                 trx_twrr_file_id: trx_twrr_file_id,
+//                 mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+//               },
+//               {
+//                 where: {
+//                   id: checkTWRR.id,
+//                 },
+//                 transaction: t,
+//               }
+//             );
+//           } else {
+//             trx_twrr_id = uuidv4();
+//             await db.trxTwrr.create(
+//               {
+//                 id: trx_twrr_id,
+//                 ...listForUpdate,
+//                 total_before_cash: totalBeforeCash,
+//                 total_after_cash: totalAfterCash,
+//                 return_harian: returnHarian,
+//                 return_akumulasi: returnAkumulasi,
+//                 created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+//                 adjustment_cf: row.AdjusmentCF ?? 0,
+//                 tanggal: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD"),
+//                 trx_twrr_file_id: trx_twrr_file_id,
+//                 mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+//               },
+//               {
+//                 transaction: t,
+//               }
+//             );
+//           }
+//           const checkRekap = await db.trxRekap.findOne({
+//             include: [
+//               {
+//                 model: db.trxTwrr,
+//                 attributes: ["tanggal"],
+//               },
+//             ],
+//             where: {
+//               tipe: "twrr",
+//               tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+//               bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+//             },
+//             transaction: t,
+//           });
+//           let endYear = 0;
+//           if (
+//             moment(row.Date, "DD/MM/YYYY").format("MM") === "12" &&
+//             moment(row.Date, "DD/MM/YYYY").format("DD") === "31"
+//           ) {
+//             endYear = 1;
+//           } else if (
+//             moment(row.Date, "DD/MM/YYYY").format("YYYY") ===
+//               moment().format("YYYY") &&
+//             moment(row.Date, "DD/MM/YYYY").format("MM") >= moment().format("MM")
+//           ) {
+//             endYear = 1;
+//           }
+
+//           if (checkRekap) {
+//             // row.Date > checkRekap.trx_twrr.tanggal
+//             if (
+//               moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD") >
+//               checkRekap.trx_twrr.tanggal
+//             ) {
+//               // get id where tahun = tahun and bulan = bulan order by tanggal desc limit 1
+//               const getIdTwrr = await db.sequelize.query(
+//                 `SELECT id FROM trx_twrr WHERE to_char(tanggal, 'YYYY-MM') = :period ORDER BY tanggal DESC LIMIT 1`,
+//                 {
+//                   replacements: {
+//                     period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+//                   },
+//                   type: db.Sequelize.QueryTypes.SELECT,
+//                   transaction: t,
+//                 }
+//               );
+//               await db.trxRekap.update(
+//                 {
+//                   trx_twrr_id: getIdTwrr[0].id,
+//                   period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+//                   tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+//                   bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+//                   end_year: endYear,
+//                 },
+//                 {
+//                   where: {
+//                     trx_twrr_id: checkRekap.trx_twrr_id,
+//                   },
+//                   transaction: t,
+//                 }
+//               );
+//             }
+//           } else {
+//             await db.trxRekap.create(
+//               {
+//                 id: uuidv4(),
+//                 tipe: "twrr",
+//                 trx_twrr_id: trx_twrr_id,
+//                 period: moment(row.Date, "DD/MM/YYYY").format("YYYY-MM"),
+//                 tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+//                 bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+//                 end_year: endYear,
+//               },
+//               {
+//                 transaction: t,
+//               }
+//             );
+//             // update rekap set end_year = 0 where tahun = tahun and bulan < bulan
+//             await db.sequelize.query(
+//               `UPDATE trx_rekap SET end_year = 0 WHERE tahun = :tahun AND bulan < :bulan`,
+//               {
+//                 replacements: {
+//                   tahun: moment(row.Date, "DD/MM/YYYY").format("YYYY"),
+//                   bulan: moment(row.Date, "DD/MM/YYYY").format("MM"),
+//                 },
+//                 type: db.Sequelize.QueryTypes.UPDATE,
+//                 transaction: t,
+//               }
+//             );
+//           }
+//         }
+//         if (validationNote !== ``) {
+//           trx_twrr_id = null;
+//           validationStatus = false;
+//           totalAfterCash = 0;
+//           totalBeforeCash = 0;
+//           returnHarian = 0;
+//           returnAkumulasi = 0;
+//         }
+
+//         const trx_twrr_file_data_id = uuidv4();
+//         await db.trxTwrrFileData.create({
+//           ...listForUpdate,
+//           id: trx_twrr_file_data_id,
+//           trx_twrr_file_id: trx_twrr_file_id,
+//           trx_twrr_id: null,
+//           tanggal:
+//             validationNote === ``
+//               ? moment(row.Date, "DD/MM/YYYY").format("YYYY-MM-DD")
+//               : null,
+//           total_before_cash: totalBeforeCash,
+//           total_after_cash: totalAfterCash,
+//           return_harian: returnHarian,
+//           return_akumulasi: returnAkumulasi,
+//           adjustment_cf: row.AdjusmentCF ?? 0,
+//           note: validationNote,
+//           status: validationStatus,
+//           created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+//           mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+//         });
+//         index++;
+//       }
+
+//       if (validationStatus) {
+//         await db.trxTwrrFile.update(
+//           {
+//             status: true,
+//           },
+//           {
+//             where: {
+//               id: trx_twrr_file_id,
+//             },
+//           }
+//         );
+//       }
+
+//       if (!validationStatus) {
+//         throw new Error("Invalid Data");
+//       }
+
+//       return {
+//         status: validationStatus,
+//         trx_twrr_file_id: trx_twrr_file_id,
+//       };
+//     });
+//     res.status(200).send({
+//       code: 200,
+//       data: result,
+//       error: null,
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       code: 500,
+//       data: null,
+//       error: error.message || "Some error occurred while retrieving data.",
+//     });
+//   }
+// };
 
 const listKolom = async (req, res) => {
   try {
