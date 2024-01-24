@@ -12,6 +12,9 @@ module.exports = (sequelize, Sequelize) => {
         type: DataTypes.STRING(255),
         allowNull: false,
       },
+      tanggal: {
+        type: DataTypes.DATEONLY,
+      },
       status: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

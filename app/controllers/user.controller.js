@@ -110,13 +110,17 @@ const signIn = async (req, res) => {
 
     // create token
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "1h",
     });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     res.status(200).json({
       code: 200,
       data: {
         token: token,
+        exp: decoded.exp,
+        iat: decoded.iat,
         landing: !groupAccess ? user.aut_group.landing : null,
         actualLanding: user.aut_group.landing,
         user: tokenPayload,
@@ -394,6 +398,68 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const changepassword2 = async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword, confirmNewPassword } = req.body;
+
+    // check password
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({
+        code: 400,
+        error: "Password not match",
+        data: null,
+      });
+    }
+
+    // check user by id and reset token
+    await User.findOne({
+      where: { email: email },
+    }).then((user) => {
+      if (!user) {
+        return res.status(404).json({
+          code: 404,
+          error: "User not found",
+          data: null,
+        });
+      }
+
+      // compare password
+      const isMatch = bcrypt.compareSync(oldPassword, user.password);
+
+      if (!isMatch) {
+        return res.status(200).json({
+          code: 401,
+          data: null,
+          error: { message: "Invalid password" },
+        });
+      }
+    });
+
+    const salt = bcrypt.genSaltSync(10);
+    // update password
+    await User.update(
+      {
+        password: bcrypt.hashSync(newPassword, salt),
+      },
+      {
+        where: { email: email },
+      }
+    );
+
+    return res.status(200).json({
+      code: 200,
+      error: null,
+      data: "Password updated",
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      data: null,
+      error: error.message,
+    });
+  }
+};
+
 // get menu item
 const getMenu = async (req, res) => {
   try {
@@ -554,4 +620,5 @@ module.exports = {
   getOne,
   updateGroup,
   remove,
+  changepassword2,
 };

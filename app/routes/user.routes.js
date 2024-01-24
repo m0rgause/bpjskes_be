@@ -12,5 +12,6 @@ router.delete("/delete/:id", userController.remove);
 router.post("/resetpassword", userController.passReset);
 router.post("/authToken", userController.checkTokenReset);
 router.put("/changepassword", userController.resetPassword);
+router.post("/changepassword2", userController.changepassword2);
 
 module.exports = router;

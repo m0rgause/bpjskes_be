@@ -368,6 +368,13 @@ const comparison = async (req, res) => {
 };
 
 const _excelSerialDateToJSDate = (serial) => {
+  // formatDate can be DD/MM/YYYY or DD/MM/YY
+  if (moment(serial, "DD/MM/YYYY", true).isValid()) {
+    return moment(serial, "DD/MM/YYYY", true).format("DD/MM/YYYY");
+  } else if (moment(serial, "DD/MM/YY", true).isValid()) {
+    return moment(serial, "DD/MM/YY", true).format("DD/MM/YYYY");
+  }
+
   // The Excel epoch starts on January 1, 1900
   const excelEpoch = new Date("1899-12-30T00:00:00Z");
 
@@ -378,6 +385,7 @@ const _excelSerialDateToJSDate = (serial) => {
 
   return date;
 };
+
 const uploadExcel = async (req, res) => {
   try {
     const result = await db.sequelize.transaction(async (t) => {
@@ -432,7 +440,9 @@ const uploadExcel = async (req, res) => {
         status: false,
         aut_user_id: user_id,
         created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+        tanggal: moment(date).format("YYYY-MM-DD"),
       });
+
 
       let validationStatus = true;
       let index = 0;
@@ -450,90 +460,114 @@ const uploadExcel = async (req, res) => {
           mst_kepemilikan_id = null;
 
         // check if kode issuer exists
-        let indexIssuer = data.issuer.kode.indexOf(row.Issuer);
-        if (indexIssuer === -1) {
-          const lastIssuer = await db.issuer.findOne({
-            attributes: ["urutan"],
-            order: [["urutan", "DESC"]],
-            limit: 1,
-          });
-          // create new issuer
-          mst_issuer_id = uuidv4();
-          await db.issuer.create({
-            id: mst_issuer_id,
-            kode: row.Issuer,
-            nama: row.Issuer,
-            mst_rating_id: rating[0].id,
-            urutan: Number(lastIssuer.urutan) + 1,
-            pd: row.PD,
-            lgd: row.LGD,
-          });
-          data.issuer.id.push(mst_issuer_id);
-          data.issuer.kode.push(row.Issuer);
-          data.issuer.nama.push(row.Issuer);
-          data.issuer.lgd.push(row.LGD);
-          data.issuer.pd.push(row.PD);
-        } else {
-          mst_issuer_id = data.issuer.id[indexIssuer];
+        if (
+          row.Issuer !== null &&
+          row.Issuer !== undefined &&
+          row.Issuer !== "-"
+        ) {
+          let indexIssuer = data.issuer.kode.indexOf(row.Issuer);
+          if (indexIssuer === -1) {
+            const lastIssuer = await db.issuer.findOne({
+              attributes: ["urutan"],
+              order: [["urutan", "DESC"]],
+              limit: 1,
+            });
+            let urutanIssuer = Number(lastIssuer?.urutan ?? 0) + 1;
+
+            // create new issuer
+            mst_issuer_id = uuidv4();
+            await db.issuer.create({
+              id: mst_issuer_id,
+              kode: row.Issuer,
+              nama: row.Issuer,
+              mst_rating_id: rating[0].id,
+              urutan: urutanIssuer,
+              pd: row.PD,
+              lgd: row.LGD,
+            });
+            data.issuer.id.push(mst_issuer_id);
+            data.issuer.kode.push(row.Issuer);
+            data.issuer.nama.push(row.Issuer);
+            data.issuer.lgd.push(row.LGD);
+            data.issuer.pd.push(row.PD);
+          } else {
+            mst_issuer_id = data.issuer.id[indexIssuer];
+          }
         }
 
         // check if kode tenor exists
         // make data tenor case insensitive
-        let indexTenor = data.tenor.nama.findIndex(
-          (element) => element.toLowerCase() === row.Tenor.toLowerCase()
-        );
-        if (indexTenor === -1) {
-          // create new tenor
-          const lastTenor = await db.tenor.findOne({
-            attributes: ["urutan"],
-            order: [["urutan", "DESC"]],
-            limit: 1,
-          });
-          mst_tenor_id = uuidv4();
-          await db.tenor.create({
-            kode: row.Tenor,
-            nama: row.Tenor,
-            tipe: row.Tipe,
-            urutan: Number(lastTenor.urutan) + 1,
-          });
-          data.tenor.id.push(mst_tenor_id);
-          data.tenor.nama.push(row.Tenor);
-          data.tenor.kode.push(row.Tenor);
+        if (
+          row.Tenor !== null &&
+          row.Tenor !== undefined &&
+          row.Tenor !== "-"
+        ) {
+          let indexTenor = data.tenor.nama.findIndex(
+            (element) => element.toLowerCase() === row.Tenor.toLowerCase()
+          );
+          if (indexTenor === -1) {
+            // create new tenor
+            const lastTenor = await db.tenor.findOne({
+              attributes: ["urutan"],
+              order: [["urutan", "DESC"]],
+              limit: 1,
+            });
+            let urutanTenor = Number(lastTenor?.urutan ?? 0) + 1;
 
-          // validationStatus = false;
-          // validationNote += `Kode Tenor ${
-          //   row.Tenor !== null ? row.Tenor : ""
-          // } tidak ditemukan. `;
-        } else {
-          mst_tenor_id = data.tenor.id[indexTenor];
+            mst_tenor_id = uuidv4();
+            await db.tenor.create({
+              kode: row.Tenor,
+              nama: row.Tenor,
+              tipe: row.Tipe,
+              urutan: urutanTenor,
+            });
+            data.tenor.id.push(mst_tenor_id);
+            data.tenor.nama.push(row.Tenor);
+            data.tenor.kode.push(row.Tenor);
+
+            // validationStatus = false;
+            // validationNote += `Kode Tenor ${
+            //   row.Tenor !== null ? row.Tenor : ""
+            // } tidak ditemukan. `;
+          } else {
+            mst_tenor_id = data.tenor.id[indexTenor];
+          }
         }
 
         // check if kode pengelolaan exists
-        let indexPengelolaan = data.pengelolaan.kode.indexOf(row.Pengelolaan);
-        if (indexPengelolaan === -1) {
-          // create new pengelolaan
-          const lastPengelolaan = await db.pengelolaan.findOne({
-            attributes: ["urutan"],
-            order: [["urutan", "DESC"]],
-            limit: 1,
-          });
-          mst_pengelolaan_id = uuidv4();
-          await db.pengelolaan.create({
-            id: mst_pengelolaan_id,
-            kode: row.Pengelolaan,
-            nama: row.Pengelolaan,
-            urutan: Number(lastPengelolaan.urutan) + 1,
-          });
-          data.pengelolaan.id.push(mst_pengelolaan_id);
-          data.pengelolaan.kode.push(row.Pengelolaan);
-          data.pengelolaan.nama.push(row.Pengelolaan);
+        if (
+          row.Pengelolaan !== null &&
+          row.Pengelolaan !== undefined &&
+          row.Pengelolaan !== "-"
+        ) {
+          let indexPengelolaan = data.pengelolaan.kode.indexOf(row.Pengelolaan);
+          if (indexPengelolaan === -1) {
+            // create new pengelolaan
+            const lastPengelolaan = await db.pengelolaan.findOne({
+              attributes: ["urutan"],
+              order: [["urutan", "DESC"]],
+              limit: 1,
+            });
+            let urutanPengelolaan = Number(lastPengelolaan?.urutan ?? 0) + 1;
 
-          // validationStatus = false;
-          // validationNote += `Kode Pengelolaan ${
-          //   row.Pengelolaan !== null ? row.Pengelolaan : ""
-          // } tidak ditemukan. `;
-        } else {
-          mst_pengelolaan_id = data.pengelolaan.id[indexPengelolaan];
+            mst_pengelolaan_id = uuidv4();
+            await db.pengelolaan.create({
+              id: mst_pengelolaan_id,
+              kode: row.Pengelolaan,
+              nama: row.Pengelolaan,
+              urutan: urutanPengelolaan,
+            });
+            data.pengelolaan.id.push(mst_pengelolaan_id);
+            data.pengelolaan.kode.push(row.Pengelolaan);
+            data.pengelolaan.nama.push(row.Pengelolaan);
+
+            // validationStatus = false;
+            // validationNote += `Kode Pengelolaan ${
+            //   row.Pengelolaan !== null ? row.Pengelolaan : ""
+            // } tidak ditemukan. `;
+          } else {
+            mst_pengelolaan_id = data.pengelolaan.id[indexPengelolaan];
+          }
         }
 
         // check if kode kbmi exists
@@ -547,12 +581,14 @@ const uploadExcel = async (req, res) => {
               order: [["urutan", "DESC"]],
               limit: 1,
             });
+            let urutanKbmi = Number(lastKbmi?.urutan ?? 0) + 1;
+
             mst_kbmi_id = uuidv4();
             await db.kbmi.create({
               id: mst_kbmi_id,
               kode: row.KBMI,
               nama: "KBMI " + row.KBMI,
-              urutan: Number(lastKbmi.urutan) + 1,
+              urutan: urutanKbmi,
             });
             data.kbmi.id.push(mst_kbmi_id);
             data.kbmi.kode.push(row.KBMI);
@@ -582,12 +618,14 @@ const uploadExcel = async (req, res) => {
               order: [["urutan", "DESC"]],
               limit: 1,
             });
+            let urutanKepemilikan = Number(lastKepemilikan?.urutan ?? 0) + 1;
+
             mst_kepemilikan_id = uuidv4();
             await db.kepemilikan.create({
               id: mst_kepemilikan_id,
               kode: row.Kepemilikan,
               nama: row.Kepemilikan,
-              urutan: Number(lastKepemilikan.urutan) + 1,
+              urutan: urutanKepemilikan,
             });
             data.kepemilikan.id.push(mst_kepemilikan_id);
             data.kepemilikan.kode.push(row.Kepemilikan);
@@ -620,6 +658,9 @@ const uploadExcel = async (req, res) => {
             // validationStatus = false;
             validationNote += `Issued Date tidak valid. `;
           }
+          row.IssuedDate = moment(row.IssuedDate, "DD/MM/YYYY", true).format(
+            "YYYY-MM-DD"
+          );
         } else {
           row.IssuedDate = null;
           // validationStatus = false;
@@ -635,6 +676,11 @@ const uploadExcel = async (req, res) => {
             // validationStatus = false;
             validationNote += `Maturity Date tidak valid. `;
           }
+          row.MaturityDate = moment(
+            row.MaturityDate,
+            "DD/MM/YYYY",
+            true
+          ).format("YYYY-MM-DD");
         } else {
           row.MaturityDate = null;
           // validationStatus = false;
@@ -650,6 +696,11 @@ const uploadExcel = async (req, res) => {
             // validationStatus = false;
             validationNote += `Interest Date tidak valid. `;
           }
+          row.InterestDate = moment(
+            row.InterestDate,
+            "DD/MM/YYYY",
+            true
+          ).format("YYYY-MM-DD");
         } else {
           row.InterestDate = null;
         }
@@ -657,7 +708,9 @@ const uploadExcel = async (req, res) => {
         if (
           row.SisaTenor !== null &&
           row.SisaTenor !== undefined &&
-          row.SisaTenor !== "-"
+          row.SisaTenor !== "-" &&
+          row.SisaTenor !== "" &&
+          row.SisaTenor
         ) {
           if (isNaN(row.SisaTenor)) {
             // validationStatus = false;
@@ -675,15 +728,33 @@ const uploadExcel = async (req, res) => {
           }
         }
 
+        if (row.PD !== null && row.PD !== undefined && row.PD !== "-") {
+          if (isNaN(row.PD)) {
+            // convert rate to number
+            row.PD = row.PD.replace(/,/g, ".");
+            // validationStatus = false;
+            validationNote += `PD tidak valid. `;
+          }
+        }
+
         // dataXLS[index]["note"] = validationNote;
         let trx_porto_id = null;
-
         if (validationNote === ``) {
+          // remove spaces from ECL
+          row.ECL = row.ECL?.replace(/\s/g, "") || undefined;
+          // remove - from ECL
+          row.ECL = row.ECL?.replace(/-/g, "") || undefined;
+          if (!row.ECL) {
+            row.ECL = 0;
+          }
+          row.LGD = row.LGD || 0;
+          row.PD = row.PD || 0;
+
           let checkPorto = await db.trxPorto.findOne({
             where: {
               tipe: row.Tipe?.toLowerCase() || null,
               mst_issuer_id: mst_issuer_id,
-              tanggal: moment(date).format("YYYY-MM-DD"),
+              tanggal: date,
               nominal: row.Nominal,
             },
           });
@@ -747,7 +818,31 @@ const uploadExcel = async (req, res) => {
             );
           }
         }
-
+        await db.trxPortoFileData.create({
+          id: uuidv4(),
+          trx_porto_file_id: trx_porto_file_id,
+          trx_porto_id: trx_porto_id,
+          mst_issuer_id: mst_issuer_id,
+          mst_kbmi_id: mst_kbmi_id,
+          mst_kepemilikan_id: mst_kepemilikan_id,
+          mst_pengelolaan_id: mst_pengelolaan_id,
+          mst_tenor_id: mst_tenor_id,
+          tipe: row.Tipe?.toLowerCase() || null,
+          unique_id: row.UniqueID,
+          no_security: row.NoSecurity,
+          start_date: row.IssuedDate,
+          end_date: row.MaturityDate,
+          interest_date: row.InterestDate,
+          nominal: row.Nominal,
+          sisa_tenor: row.SisaTenor,
+          rate: row.Rate,
+          pd: row.PD,
+          lgd: row.LGD,
+          ecl: row.ECL,
+          created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+          status: validationNote === `` ? true : false,
+          note: validationNote,
+        });
         index++;
       }
 
@@ -755,6 +850,7 @@ const uploadExcel = async (req, res) => {
         await db.trxPortoFile.update(
           {
             status: true,
+            tanggal: moment(date).format("YYYY-MM-DD"),
           },
           {
             where: {
@@ -874,7 +970,7 @@ const uploadExcel = async (req, res) => {
 
 //         let indexIssuer = data.issuer.kode.indexOf(row[2]);
 //         if (indexIssuer === -1) {
-//           console.log(data.issuer.kode, row[2], indexIssuer);
+
 //           const lastIssuer = await db.issuer.findOne({
 //             attributes: ["urutan"],
 //             order: [["urutan", "DESC"]],
@@ -894,7 +990,7 @@ const uploadExcel = async (req, res) => {
 //             })
 //             .then((data) => {})
 //             .catch((err) => {
-//               console.log(err);
+
 //             });
 //           data.issuer.id.push(mst_issuer_id);
 //           data.issuer.kode.push(row[2]);
@@ -934,7 +1030,7 @@ const uploadExcel = async (req, res) => {
 //             })
 //             .then((data) => {})
 //             .catch((err) => {
-//               console.log(err);
+
 //             });
 //           data.tenor.id.push(mst_tenor_id);
 //           data.tenor.nama.push(row[5]);
@@ -969,7 +1065,7 @@ const uploadExcel = async (req, res) => {
 //               })
 //               .then((data) => {})
 //               .catch((err) => {
-//                 console.log(err);
+
 //               });
 //             data.pengelolaan.id.push(mst_pengelolaan_id);
 //             data.pengelolaan.kode.push(row[4]);
@@ -1004,7 +1100,7 @@ const uploadExcel = async (req, res) => {
 //               })
 //               .then((data) => {})
 //               .catch((err) => {
-//                 console.log(err);
+
 //               });
 //             data.kbmi.id.push(mst_kbmi_id);
 //             data.kbmi.kode.push(`${row[3]}`);
@@ -1023,7 +1119,7 @@ const uploadExcel = async (req, res) => {
 //         // check if row.kepemilikan is not null or undefined first, if it is then pass
 //         if (row[6] !== null || row[6] !== undefined || row[6] !== "-") {
 //           let indexKepemilikan = data.kepemilikan.kode.indexOf(row[6]);
-//           console.log(indexKepemilikan);
+
 //           if (indexKepemilikan === -1) {
 //             // create new kepemilikan
 //             const lastKepemilikan = await db.kepemilikan.findOne({
@@ -1041,7 +1137,7 @@ const uploadExcel = async (req, res) => {
 //               })
 //               .then((data) => {})
 //               .catch((err) => {
-//                 console.log(err);
+
 //               });
 //             data.kepemilikan.id.push(mst_kepemilikan_id);
 //             data.kepemilikan.kode.push(row[6]);
@@ -1152,7 +1248,7 @@ const uploadExcel = async (req, res) => {
 //               )
 //               .then((result) => {})
 //               .catch((err) => {
-//                 console.log(err.message);
+
 //               });
 //           } else {
 //             trx_porto_id = uuidv4();
@@ -1183,12 +1279,11 @@ const uploadExcel = async (req, res) => {
 //               })
 //               .then((result) => {})
 //               .catch((err) => {
-//                 console.log(err.message);
+
 //               });
 //           }
 //         }
-//         console.log(`index: ${index}, ii: ${ii}, sheet: ${sheet}`);
-//         console.log(`validationNote: ${validationNote}`);
+
 //         ii++;
 //       }
 
@@ -1341,7 +1436,7 @@ const uploadExcel = async (req, res) => {
 //           }
 //         }
 
-//         // console.log(row.IssuedDate);
+//
 //         row["IssuedDate"] =
 //           row.IssuedDate !== undefined
 //             ? _excelSerialDateToJSDate(row["IssuedDate"])
@@ -1354,9 +1449,9 @@ const uploadExcel = async (req, res) => {
 //           row.InterestDate !== undefined
 //             ? _excelSerialDateToJSDate(row["InterestDate"])
 //             : undefined;
-//         // console.log(row.IssuedDate);
-//         // console.log(row.MaturityDate);
-//         // console.log(row.InterestDate);
+//
+//
+//
 
 //         if (row.IssuedDate !== undefined) {
 //           if (!moment(row.IssuedDate, "DD/MM/YYYY", true).isValid()) {
@@ -1402,8 +1497,6 @@ const uploadExcel = async (req, res) => {
 //             validationNote += `Rate tidak valid. `;
 //           }
 //         }
-
-//         console.log(validationNote);
 
 //         // check if kode kepemilikan exists
 //         if (row.Kepemilikan !== null && row.Kepemilikan !== undefined) {
@@ -2117,7 +2210,7 @@ const listPortoFile = async (req, res) => {
     const user_id = JSON.parse(session).user.id;
 
     let data = await db.trxPortoFile.findAll({
-      attributes: ["id", "file_name", "status", "created_at"],
+      attributes: ["id", "file_name", "status", "created_at", "tanggal"],
       where: {
         aut_user_id: user_id,
       },
