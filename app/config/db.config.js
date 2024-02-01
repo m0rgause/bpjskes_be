@@ -1,7 +1,6 @@
 const { Sequelize } = require("sequelize");
 
-const sequelize = new Sequelize("postgres", "postgres", "Bismillah@17081945", {
-  host: "db.cwuwaralndefszmwvgvx.supabase.co",
+const sequelize = new Sequelize("postgres://postgres.cwuwaralndefszmwvgvx:Bismillah@17081945@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres", {
   dialect: "postgres",
   operatorsAliases: 0,
   pool: {
