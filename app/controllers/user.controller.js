@@ -202,53 +202,65 @@ const checkAuth = async (req, res) => {
     // verify token
     let decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // get email
-    let email = req.body.email;
-    // get path
-    let path = req.body.path;
-    path = path.split("/");
-    path = path[1] + "/" + path[2];
+    if (decoded.email === req.body.email) {
+      // get email
+      let email = req.body.email;
+      // get path
+      let path = req.body.path;
+      path = path.split("/");
+      path = path[1] + "/" + path[2];
 
-    const aut_user = await User.findOne({
-      where: { email: email },
-      include: [
-        {
-          model: db.group,
-          attributes: ["landing"],
-        },
-      ],
-    });
-
-    const aut_group_access = await db.groupAccess.findOne({
-      where: { aut_group_id: aut_user.aut_group_id },
-      include: [
-        {
-          model: db.access,
-          where: {
-            path: {
-              [db.Sequelize.Op.iLike]: `%${path}%`,
-            },
+      const aut_user = await User.findOne({
+        where: { email: email },
+        include: [
+          {
+            model: db.group,
+            attributes: ["landing"],
           },
-          attributes: ["path"],
-        },
-      ],
-    });
-
-    if (!aut_group_access) {
-      res.status(200).json({
+        ],
+      });
+      if (aut_user.aut_group_id === decoded.aut_group_id) {
+        const aut_group_access = await db.groupAccess.findOne({
+          where: { aut_group_id: aut_user.aut_group_id },
+          include: [
+            {
+              model: db.access,
+              where: {
+                path: {
+                  [db.Sequelize.Op.iLike]: `%${path}%`,
+                },
+              },
+              attributes: ["path"],
+            },
+          ],
+        });
+        if (!aut_group_access) {
+          return res.status(200).json({
+            code: 401,
+            data: null,
+            error: "Unauthorized",
+          });
+        }
+        return res.status(200).json({
+          code: 200,
+          data: path,
+          error: null,
+          landing: aut_user.aut_group.landing,
+        });
+      } else {
+        return res.status(200).json({
+          code: 401,
+          data: null,
+          error: "Unauthorized",
+        });
+      }
+    } else {
+      return res.status(200).json({
         code: 401,
         data: null,
         error: "Unauthorized",
-        landing: aut_user.aut_group.landing,
       });
-      return;
     }
-    return res.status(200).json({
-      code: 200,
-      data: path,
-      error: null,
-      landing: aut_user.aut_group.landing,
-    });
   } catch (error) {
     return res.status(500).json({
       code: 500,
@@ -427,10 +439,10 @@ const changepassword2 = async (req, res) => {
       const isMatch = bcrypt.compareSync(oldPassword, user.password);
 
       if (!isMatch) {
-        return res.status(200).json({
+        return res.status(500).json({
           code: 401,
           data: null,
-          error: { message: "Invalid password" },
+          error: { message: "Invalid password lama" },
         });
       }
     });
@@ -463,7 +475,9 @@ const changepassword2 = async (req, res) => {
 // get menu item
 const getMenu = async (req, res) => {
   try {
-    let email = req.body.email;
+    let token = req.body.token;
+    let decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let email = decoded.email;
     const aut_user = await User.findOne({
       where: { email: email },
       attributes: ["nama"],
