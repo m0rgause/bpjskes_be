@@ -34,12 +34,12 @@ const findSelect = (req, res) => {
   // console.log(table);
   let options = {
     attributes: ["id", "kode", "nama"],
-    order: [["urutan", "ASC"]],
+    order: [["nama", "ASC"]],
   };
   if (table === "tenor") {
     options = {
       attributes: ["id", "kode", "nama"],
-      order: [["urutan", "ASC"]],
+      order: [["nama", "ASC"]],
       where: {
         tipe: {
           [Op.iLike]: `%${tipe}%`,

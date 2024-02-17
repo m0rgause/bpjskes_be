@@ -109,9 +109,9 @@ const deposito = async (req, res) => {
     SUM(ecl), mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-    JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
-    JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
-    JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+    LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
+    LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
+    LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
     JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_porto.tipe = 'deposito'
@@ -121,9 +121,9 @@ const deposito = async (req, res) => {
     SELECT mst_issuer.nama as "nama_issuer", mst_kbmi.nama as "nama_kbmi", mst_kepemilikan.nama as "nama_kepemilikan", mst_pengelolaan.nama as "nama_pengelolaan", mst_tenor.nama as "nama_tenor", trx_porto.*, mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-    JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
-    JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
-    JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+    LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
+    LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
+    LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
     JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_porto.tipe = 'deposito'
@@ -247,9 +247,9 @@ const obligasi = async (req, res) => {
     SUM(ecl), mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-    JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
-    JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
-    JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+    LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
+    LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
+    LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
     JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_porto.tipe = 'obligasi'
@@ -259,9 +259,9 @@ const obligasi = async (req, res) => {
     SELECT mst_issuer.nama as "nama_issuer", mst_kbmi.nama as "nama_kbmi", mst_kepemilikan.nama as "nama_kepemilikan", mst_pengelolaan.nama as "nama_pengelolaan", mst_tenor.nama as "nama_tenor", trx_porto.*, mst_bank_custody.nama as "nama_custody" ${list_select}
     FROM trx_porto
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-    JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
-    JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
-    JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+    LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
+    LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
+    LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
     JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
     WHERE trx_porto.tipe = 'obligasi'

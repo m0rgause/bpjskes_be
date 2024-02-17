@@ -170,13 +170,13 @@ const multiPorto = async (req, res) => {
         list_period.push(moment(start_date).add(i, "years").format("YYYY"));
       }
     }
-
     let sb = ``;
     let sbSelect = ``;
     if (subtipe === "deposito" || subtipe === "obligasi") {
       sbSelect = `, mst_kbmi.nama as "kbmi", mst_kepemilikan.nama as "kepemilikan"`;
       sb = `LEFT JOIN mst_kbmi ON trx_porto.mst_kbmi_id = mst_kbmi.id
-      LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id`;
+      LEFT JOIN mst_kepemilikan ON trx_porto.mst_kepemilikan_id = mst_kepemilikan.id
+      `;
     }
     let query = ``;
     let queryTable = ``;
@@ -188,7 +188,7 @@ const multiPorto = async (req, res) => {
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
-      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
       AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)
@@ -201,12 +201,13 @@ const multiPorto = async (req, res) => {
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
-      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
       AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)
       AND mst_tenor.tipe ILIKE '%${subtipe}%'
     `;
+
     } else if (type === "yearly") {
       query += `
       SELECT TO_CHAR(trx_porto.tanggal, 'YYYY') as "period", SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
@@ -214,7 +215,7 @@ const multiPorto = async (req, res) => {
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
-      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
       AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)
@@ -226,7 +227,7 @@ const multiPorto = async (req, res) => {
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
       ${sb}
-      JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
       AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)

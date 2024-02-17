@@ -33,7 +33,7 @@ const findAll = (req, res) => {
 const findSelect = (req, res) => {
   Issuer.findAndCountAll({
     attributes: ["id", "kode", "nama"],
-    order: [["urutan", "ASC"]],
+    order: [["nama", "ASC"]],
   })
     .then((data) => {
       res.send({ code: 200, data: data, error: null });
