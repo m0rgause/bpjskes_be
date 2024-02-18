@@ -6,20 +6,25 @@ const xlsx = require("xlsx");
 
 const externalCash = async (req, res) => {
   try {
-    let { type, startDate, rangeDate } = req.body;
-    let period = [];
-    for (let i = 0; i < rangeDate; i++) {
-      if (type === "daily") {
-        period.push(moment(startDate).add(i, "days").format("YYYY-MM-DD"));
-      } else if (type === "monthly") {
-        period.push(moment(startDate).add(i, "months").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        period.push(moment(startDate).add(i, "years").format("YYYY"));
-      }
+    let { type, startDate, endDate, rangeDate } = req.body;
+    // let period = [];
+    // for (let i = 0; i < rangeDate; i++) {
+    if (type === "daily") {
+      // startDate = moment(startDate).subtract(1, "days").format("YYYY-MM-DD");
+      //     period.push(moment(startDate).add(i, "days").format("YYYY-MM-DD"));
+    } else if (type === "monthly") {
+      startDate = moment(startDate).subtract(1, "months").format("YYYY-MM");
+      //     period.push(moment(startDate).add(i, "months").format("YYYY-MM"));
+    } else if (type === "yearly") {
+      startDate = moment(startDate).subtract(1, "years").format("YYYY");
+      //     period.push(moment(startDate).add(i, "years").format("YYYY"));
     }
+    // }
     let query = ``;
     if (type === "daily") {
-      query = `SELECT tanggal as period, total_before_cash, total_after_cash, return_harian, return_akumulasi FROM trx_twrr WHERE tanggal IN (:listDate) ORDER BY tanggal ASC`;
+      query = `SELECT tanggal as period, total_before_cash, total_after_cash, return_harian, return_akumulasi FROM trx_twrr WHERE tanggal
+      >= :startDate AND tanggal <= :endDate
+       ORDER BY tanggal ASC`;
     } else if (type === "monthly") {
       query = `SELECT 
       trx_rekap.period as period,
@@ -27,7 +32,8 @@ const externalCash = async (req, res) => {
       sum(trx_twrr.total_after_cash) as total_after_cash,
       sum(trx_twrr.return_harian) as return_harian,
       sum(trx_twrr.return_akumulasi) as return_akumulasi
-       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.period IN (:listDate) 
+       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' 
+      AND trx_rekap.period >= :startDate AND trx_rekap.period <= :endDate
       GROUP BY trx_rekap.period
       ORDER BY trx_rekap.period ASC`;
     } else if (type === "yearly") {
@@ -37,14 +43,17 @@ const externalCash = async (req, res) => {
       sum(trx_twrr.total_after_cash) as total_after_cash,
       sum(trx_twrr.return_harian) as return_harian,
       sum(trx_twrr.return_akumulasi) as return_akumulasi
-       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' AND trx_rekap.tahun IN (:listDate) 
+       FROM trx_twrr JOIN trx_rekap ON trx_rekap.trx_twrr_id = trx_twrr.id WHERE trx_rekap.tipe = 'twrr' 
+      AND trx_rekap.tahun >= :startDate AND trx_rekap.tahun <= :endDate
       GROUP BY trx_rekap.tahun
       ORDER BY trx_rekap.tahun ASC`;
     }
 
     const options = {
       replacements: {
-        listDate: period,
+        // listDate: period,
+        startDate: startDate,
+        endDate: endDate,
       },
       type: db.Sequelize.QueryTypes.SELECT,
     };
@@ -438,7 +447,7 @@ const uploadTWRRFile = async (req, res) => {
             endYear = 1;
           } else if (
             moment(row.Date, "DD/MM/YYYY").format("YYYY") ===
-              moment().format("YYYY") &&
+            moment().format("YYYY") &&
             moment(row.Date, "DD/MM/YYYY").format("MM") >= moment().format("MM")
           ) {
             endYear = 1;

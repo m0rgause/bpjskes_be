@@ -75,6 +75,7 @@ const deposito = async (req, res) => {
     let {
       type,
       startDate,
+      endDate,
       rangeDate,
       custody,
       issuer,
@@ -84,25 +85,29 @@ const deposito = async (req, res) => {
       pengelolaan,
     } = req.body;
 
-    let period = [];
-    for (let mth = 0; mth < rangeDate; mth++) {
-      if (type === "monthly") {
-        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        period.push(moment(startDate).add(mth, "year").format("YYYY"));
-      }
-    }
+    // let period = [];
+    // for (let mth = 0; mth < rangeDate; mth++) {
+    //   if (type === "monthly") {
+    //     period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+    //   } else if (type === "yearly") {
+    //     period.push(moment(startDate).add(mth, "year").format("YYYY"));
+    //   }
+    // }
     let query = ``;
     let queryTable = ``;
     let list_select = "";
     let list_group = "";
 
     if (type === "monthly") {
+      startDate = moment(startDate).startOf("month").format("YYYY-MM");
+      endDate = moment(endDate).endOf("month").format("YYYY-MM");
       list_select = `, trx_porto.tanggal as "period"`;
       list_group = ` trx_porto.tanggal`;
     } else if (type === "yearly") {
-      list_select = `, trx_porto.tanggal as "period"`;
-      list_group = ` trx_porto.tanggal`;
+      startDate = moment(startDate).startOf("year").format("YYYY");
+      endDate = moment(endDate).endOf("year").format("YYYY");
+      list_select = `, TO_CHAR(trx_porto.tanggal, 'YYYY') as "period"`;
+      list_group = ` TO_CHAR(trx_porto.tanggal, 'YYYY')`;
     }
 
     query = `SELECT 
@@ -131,11 +136,11 @@ const deposito = async (req, res) => {
     `;
 
     if (type === "monthly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
     } else if (type === "yearly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate`;
     }
 
     if (custody !== "all") {
@@ -167,12 +172,14 @@ const deposito = async (req, res) => {
       queryTable += `AND mst_kbmi.id = :kbmi `;
     }
 
-    query += `GROUP BY mst_bank_custody.nama, ${list_group}
+    query += ` GROUP BY mst_bank_custody.nama, ${list_group}
     ORDER BY ${list_group} ASC;`;
-    queryTable += `ORDER BY ${list_group};`;
+    queryTable += ` ORDER BY ${list_group};`;
 
     const replacements = {
-      list_month: period,
+      // list_month: period,
+      startDate: startDate,
+      endDate: endDate,
       issuer: issuer,
       kbmi: kbmi,
       tenor: tenor,
@@ -213,6 +220,7 @@ const obligasi = async (req, res) => {
       type,
       rangeDate,
       startDate,
+      endDate,
       custody,
       issuer,
       tenor,
@@ -221,14 +229,14 @@ const obligasi = async (req, res) => {
       kbmi,
     } = req.body;
 
-    let period = [];
-    for (let mth = 0; mth < rangeDate; mth++) {
-      if (type === "monthly") {
-        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        period.push(moment(startDate).add(mth, "year").format("YYYY"));
-      }
-    }
+    // let period = [];
+    // for (let mth = 0; mth < rangeDate; mth++) {
+    //   if (type === "monthly") {
+    //     period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+    //   } else if (type === "yearly") {
+    //     period.push(moment(startDate).add(mth, "year").format("YYYY"));
+    //   }
+    // }
 
     let query = ``;
     let queryTable = ``;
@@ -236,11 +244,15 @@ const obligasi = async (req, res) => {
     let list_group = "";
 
     if (type === "monthly") {
+      startDate = moment(startDate).startOf("month").format("YYYY-MM");
+      endDate = moment(endDate).endOf("month").format("YYYY-MM");
       list_select = `, trx_porto.tanggal as "period"`;
       list_group = ` trx_porto.tanggal`;
     } else if (type === "yearly") {
-      list_select = `, trx_porto.tanggal as "period"`;
-      list_group = ` trx_porto.tanggal`;
+      startDate = moment(startDate).startOf("year").format("YYYY");
+      endDate = moment(endDate).endOf("year").format("YYYY");
+      list_select = `, TO_CHAR(trx_porto.tanggal, 'YYYY') as "period"`;
+      list_group = ` TO_CHAR(trx_porto.tanggal, 'YYYY')`;
     }
 
     query = `SELECT 
@@ -269,11 +281,11 @@ const obligasi = async (req, res) => {
     `;
 
     if (type === "monthly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)`;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)`;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
     } else if (type === "yearly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)  `;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)  `;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
     }
 
     if (custody !== "all") {
@@ -306,7 +318,9 @@ const obligasi = async (req, res) => {
     queryTable += `ORDER BY ${list_group};`;
 
     const replacements = {
-      list_month: period,
+      // list_month: period,
+      startDate: startDate,
+      endDate: endDate,
       issuer: issuer,
       tenor: tenor,
       custody: custody,

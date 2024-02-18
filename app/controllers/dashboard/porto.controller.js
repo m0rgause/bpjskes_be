@@ -6,27 +6,28 @@ const XLSX = require("xlsx");
 
 const summary = async (req, res) => {
   try {
-    let { type, start, range, issuer } = req.body;
-
-    let list_period = [];
-    for (let i = 0; i < range; i++) {
-      if (type === "monthly") {
-        list_period.push(moment(start).add(i, "months").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        list_period.push(moment(start).add(i, "years").format("YYYY"));
-      }
-    }
+    let { type, start, end, range, issuer } = req.body;
+    // let list_period = [];
+    // for (let i = 0; i < range; i++) {
+    //   if (type === "monthly") {
+    //     list_period.push(moment(start).add(i, "months").format("YYYY-MM"));
+    //   } else if (type === "yearly") {
+    //     list_period.push(moment(start).add(i, "years").format("YYYY"));
+    //   }
+    // }
 
     let query = ``;
     if (type === "monthly") {
       query = `SELECT trx_porto.tipe, SUM(nominal)
     FROM trx_porto
-    WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)
+    WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :start
+    AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :end
     `;
     } else if (type === "yearly") {
       query = `SELECT trx_porto.tipe, SUM(nominal)
       FROM trx_porto
-      WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)
+      WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') >= :start
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :end
     `;
     }
 
@@ -38,7 +39,9 @@ const summary = async (req, res) => {
 
     const options = {
       replacements: {
-        list_month: list_period,
+        // list_month: list_period,
+        start: start,
+        end: end,
         issuer: issuer,
       },
       type: db.Sequelize.QueryTypes.SELECT,
@@ -152,6 +155,7 @@ const multiPorto = async (req, res) => {
       type,
       // list_date,
       start_date,
+      end_date,
       range,
       custody,
       issuer,
@@ -161,15 +165,21 @@ const multiPorto = async (req, res) => {
       pengelolaan,
       subtipe,
     } = req.body;
-
-    let list_period = [];
-    for (let i = 0; i < range; i++) {
-      if (type === "monthly") {
-        list_period.push(moment(start_date).add(i, "months").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        list_period.push(moment(start_date).add(i, "years").format("YYYY"));
-      }
+    if (type === "monthly") {
+      start_date = moment(start_date).format("YYYY-MM");
+      end_date = moment(end_date).format("YYYY-MM");
+    } else if (type === "yearly") {
+      start_date = moment(start_date).format("YYYY");
+      end_date = moment(end_date).format("YYYY");
     }
+    // let list_period = [];
+    // for (let i = 0; i < range; i++) {
+    //   if (type === "monthly") {
+    //     list_period.push(moment(start_date).add(i, "months").format("YYYY-MM"));
+    //   } else if (type === "yearly") {
+    //     list_period.push(moment(start_date).add(i, "years").format("YYYY"));
+    //   }
+    // }
     let sb = ``;
     let sbSelect = ``;
     if (subtipe === "deposito" || subtipe === "obligasi") {
@@ -182,8 +192,7 @@ const multiPorto = async (req, res) => {
     let queryTable = ``;
     if (type === "monthly") {
       query += `
-      SELECT trx_porto.tanggal as period, SUM(nominal) as nominal, mst_bank_custody.nama as "custody",
-      trx_porto.*
+      SELECT trx_porto.tanggal as period, SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
       FROM trx_porto
       JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
       JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
@@ -191,34 +200,8 @@ const multiPorto = async (req, res) => {
       LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
-      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
-    `;
-
-      queryTable += `
-     SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.*, mst_bank_custody.nama as "custody" ${sbSelect}
-      FROM trx_porto
-      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
-      ${sb}
-      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
-      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
-      WHERE trx_porto.tipe = :subtipe
-      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month)
-      AND mst_tenor.tipe ILIKE '%${subtipe}%'
-    `;
-
-    } else if (type === "yearly") {
-      query += `
-      SELECT TO_CHAR(trx_porto.tanggal, 'YYYY') as "period", SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
-      FROM trx_porto
-      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
-      ${sb}
-      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
-      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
-      WHERE trx_porto.tipe = :subtipe
-      AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :start
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :end
       AND mst_tenor.tipe ILIKE '%${subtipe}%'
     `;
       queryTable += `
@@ -230,7 +213,35 @@ const multiPorto = async (req, res) => {
       LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
       JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
       WHERE trx_porto.tipe = :subtipe
-      AND TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month)
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :start
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :end
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+    `;
+    } else if (type === "yearly") {
+      query += `
+      SELECT TO_CHAR(trx_porto.tanggal, 'YYYY') as "period", SUM(nominal) as nominal, mst_bank_custody.nama as "custody"
+      FROM trx_porto
+      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
+      ${sb}
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
+      WHERE trx_porto.tipe = :subtipe
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :start
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :end
+      AND mst_tenor.tipe ILIKE '%${subtipe}%'
+    `;
+      queryTable += `
+      SELECT mst_issuer.nama as "issuer", mst_pengelolaan.nama as "pengelolaan", mst_tenor.nama as "tenor", trx_porto.*, mst_bank_custody.nama as "custody" ${sbSelect}
+      FROM trx_porto
+      JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
+      JOIN mst_tenor ON trx_porto.mst_tenor_id = mst_tenor.id
+      ${sb}
+      LEFT JOIN mst_pengelolaan ON trx_porto.mst_pengelolaan_id = mst_pengelolaan.id
+      JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
+      WHERE trx_porto.tipe = :subtipe
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :start
+      AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :end
       AND mst_tenor.tipe ILIKE '%${subtipe}%'
     `;
     }
@@ -260,7 +271,7 @@ const multiPorto = async (req, res) => {
       queryTable += ` AND trx_porto.mst_bank_custody_id = :custody`;
     }
     if (type === "monthly") {
-      query += ` GROUP BY trx_porto.id, trx_porto.tanggal, mst_bank_custody.nama
+      query += ` GROUP BY trx_porto.tanggal, mst_bank_custody.nama
     ORDER BY trx_porto.tanggal ASC;`;
       queryTable += ` ORDER BY trx_porto.tanggal ASC;`;
     } else if (type === "yearly") {
@@ -270,7 +281,9 @@ const multiPorto = async (req, res) => {
     }
     const options = {
       replacements: {
-        list_month: list_period,
+        start: start_date,
+        end: end_date,
+        // list_month: list_period,
         type: type,
         custody: custody,
         issuer: issuer,
@@ -428,6 +441,7 @@ const uploadExcel = async (req, res) => {
           pd: listPD,
         };
       }
+
       const rating = await db.rating.findAll({
         attributes: ["id"],
         order: [["urutan", "ASC"]],
