@@ -16,6 +16,14 @@ const summary = async (req, res) => {
     //   }
     // }
 
+    if (type === "monthly") {
+      start = moment(start).format("YYYY-MM");
+      end = moment(end).format("YYYY-MM");
+    } else if (type === "yearly") {
+      start = moment(start).format("YYYY");
+      end = moment(end).format("YYYY");
+    }
+
     let query = ``;
     if (type === "monthly") {
       query = `SELECT trx_porto.tipe, SUM(nominal)
@@ -36,7 +44,7 @@ const summary = async (req, res) => {
     }
     query += ` GROUP BY trx_porto.tipe
     ORDER BY trx_porto.tipe ASC;`;
-
+    console.log(start, end)
     const options = {
       replacements: {
         // list_month: list_period,
