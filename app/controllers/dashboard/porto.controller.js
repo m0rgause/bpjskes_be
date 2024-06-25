@@ -43,8 +43,8 @@ const summary = async (req, res) => {
       query += ` AND trx_porto.mst_issuer_id = :issuer`;
     }
     query += ` GROUP BY trx_porto.tipe
-    ORDER BY trx_porto.tipe ASC;`;
-    console.log(start, end)
+    ORDER BY trx_porto.tipe ASC`;
+    
     const options = {
       replacements: {
         // list_month: list_period,
@@ -488,7 +488,7 @@ const uploadExcel = async (req, res) => {
           row.Issuer !== undefined &&
           row.Issuer !== "-"
         ) {
-          let indexIssuer = data.issuer.kode.indexOf(row.Issuer);
+          let indexIssuer = data.issuer.kode.indexOf(row.Issuer.toUpperCase());
           if (indexIssuer === -1) {
             const lastIssuer = await db.issuer.findOne({
               attributes: ["urutan"],
@@ -501,8 +501,8 @@ const uploadExcel = async (req, res) => {
             mst_issuer_id = uuidv4();
             await db.issuer.create({
               id: mst_issuer_id,
-              kode: row.Issuer,
-              nama: row.Issuer,
+              kode: row.Issuer.toUpperCase(),
+              nama: row.Issuer.toUpperCase(),
               mst_rating_id: rating[0].id,
               urutan: urutanIssuer,
               pd: row.PD,
@@ -541,7 +541,8 @@ const uploadExcel = async (req, res) => {
             await db.tenor.create({
               kode: row.Tenor,
               nama: row.Tenor,
-              tipe: row.Tipe,
+              // tipe: row.Tipe,
+              tipe: 'deposito,obligasi,sbn,sbi',
               urutan: urutanTenor,
             });
             data.tenor.id.push(mst_tenor_id);

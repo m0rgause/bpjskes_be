@@ -3,25 +3,29 @@ const moment = require("moment");
 
 const summary = async (req, res) => {
   try {
-    let { type, startDate, rangeDate, issuer, custody } = req.body;
+    let { type, startDate, endDate, rangeDate, issuer, custody } = req.body;
 
-    let period = [];
-    for (let mth = 0; mth < rangeDate; mth++) {
-      if (type === "monthly") {
-        period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
-      } else if (type === "yearly") {
-        period.push(moment(startDate).add(mth, "year").format("YYYY"));
-      }
-    }
+    // let period = [];
+    // for (let mth = 0; mth < rangeDate; mth++) {
+    //   if (type === "monthly") {
+    //     period.push(moment(startDate).add(mth, "month").format("YYYY-MM"));
+    //   } else if (type === "yearly") {
+    //     period.push(moment(startDate).add(mth, "year").format("YYYY"));
+    //   }
+    // }
 
     let query = ``;
     let list_select = "";
     let list_group = "";
 
     if (type === "monthly") {
+      startDate = moment(startDate).startOf("month").format("YYYY-MM");
+      endDate = moment(endDate).endOf("month").format("YYYY-MM");
       list_select = `, trx_porto.tanggal`;
       list_group = `, trx_porto.tanggal`;
     } else if (type === "yearly") {
+      startDate = moment(startDate).startOf("month").format("YYYY");
+      endDate = moment(endDate).endOf("month").format("YYYY");
       list_select = `, trx_porto.tanggal`;
       list_group = `, trx_porto.tanggal`;
     }
@@ -30,12 +34,20 @@ const summary = async (req, res) => {
     mst_issuer.nama, SUM(ecl), mst_issuer.warna, mst_bank_custody.nama as custody ${list_select}
     FROM trx_porto
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
-    JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id
-`;
+    JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id`;
+
+//     if (type === "monthly") {
+//       query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
+//     } else if (type === "yearly") {
+//       query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
+//     }
+
     if (type === "monthly") {
-      query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
     } else if (type === "yearly") {
-      query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
+      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
+      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate`;
     }
 
     if (issuer !== "all") {
@@ -49,7 +61,9 @@ const summary = async (req, res) => {
 
     const data = await db.sequelize.query(query, {
       replacements: {
-        list_month: period,
+        // list_month: period,
+        startDate: startDate,
+        endDate: endDate,
         issuer: issuer,
         custody: custody,
       },
@@ -93,6 +107,7 @@ const deposito = async (req, res) => {
     //     period.push(moment(startDate).add(mth, "year").format("YYYY"));
     //   }
     // }
+
     let query = ``;
     let queryTable = ``;
     let list_select = "";

@@ -30,21 +30,57 @@ const findAll = (req, res) => {
     });
 };
 
-const findSelect = (req, res) => {
-  Issuer.findAndCountAll({
-    attributes: ["id", "kode", "nama"],
-    order: [["nama", "ASC"]],
-  })
-    .then((data) => {
-      res.send({ code: 200, data: data, error: null });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        code: 500,
-        data: null,
-        error: err.message || "Some error occurred while retrieving data.",
-      });
+// const findSelect = (req, res) => {
+//   Issuer.findAndCountAll({
+//     attributes: ["id", "kode", "nama"],
+//     order: [["nama", "ASC"]],
+//   })
+//     .then((data) => {
+//       res.send({ code: 200, data: data, error: null });
+//     })
+//     .catch((err) => {
+//       res.status(500).send({
+//         code: 500,
+//         data: null,
+//         error: err.message || "Some error occurred while retrieving data.",
+//       });
+//     });
+// };
+
+const findSelect = async(req, res) => {
+  const tipe = req.query.tipe ? req.query.tipe : '';
+
+  try {
+    query = `
+    SELECT mst_issuer.id, mst_issuer.nama, mst_issuer.pd, mst_issuer.lgd, mst_issuer.warna, mst_issuer.urutan  
+    FROM mst_issuer
+    JOIN trx_porto on mst_issuer.id = trx_porto.mst_issuer_id`;
+
+    if (tipe !== '') {
+      query += ` WHERE trx_porto.tipe = '${tipe}'`;
+    }
+    
+    query += ` GROUP BY mst_issuer.id, mst_issuer.nama
+    ORDER BY mst_issuer.nama`;
+
+    const options = {
+      type: db.Sequelize.QueryTypes.SELECT,
+    };
+    let data = await db.sequelize.query(query, options);
+    
+    let result = {
+      count: data.length,
+      rows: data
+    }
+    
+    res.send({ code: 200, data: result, error: null });
+  } catch (error) {
+    res.status(500).send({
+      code: 500,
+      data: null,
+      error: error.message || "Some error occurred while retrieving data.",
     });
+  }
 };
 
 // get data by id
