@@ -275,6 +275,26 @@ const detailTWRRFile = async (req, res) => {
     });
   }
 };
+
+const _excelSerialDateToJSDate = (serial) => {
+  // formatDate can be DD/MM/YYYY or DD/MM/YY
+  if (moment(serial, "DD/MM/YYYY", true).isValid()) {
+    return moment(serial, "DD/MM/YYYY", true).format("DD/MM/YYYY");
+  } else if (moment(serial, "DD/MM/YY", true).isValid()) {
+    return moment(serial, "DD/MM/YY", true).format("DD/MM/YYYY");
+  }
+
+  // The Excel epoch starts on January 1, 1900
+  const excelEpoch = new Date("1899-12-30T00:00:00Z");
+
+  // Convert the Excel serial number to milliseconds
+  const milliseconds = serial * 24 * 60 * 60 * 1000;
+
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+
+  return date;
+};
+
 const uploadTWRRFile = async (req, res) => {
   // const t = await db.sequelize.transaction();
   let trx_twrr_file_id = uuidv4();
@@ -342,6 +362,7 @@ const uploadTWRRFile = async (req, res) => {
       let index = 0;
       for (const row of dataXLS) {
         let validationNote = ``;
+        row.Date = _excelSerialDateToJSDate(row.Date);
         // validating date format
         if (!moment(row.Date, "DD/MM/YYYY", true).isValid()) {
           validationStatus = false;

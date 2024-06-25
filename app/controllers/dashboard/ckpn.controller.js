@@ -36,27 +36,27 @@ const summary = async (req, res) => {
     JOIN mst_issuer ON trx_porto.mst_issuer_id = mst_issuer.id
     JOIN mst_bank_custody ON trx_porto.mst_bank_custody_id = mst_bank_custody.id`;
 
-//     if (type === "monthly") {
-//       query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
-//     } else if (type === "yearly") {
-//       query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
-//     }
+    // if (type === "monthly") {
+    //   query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') IN (:list_month) `;
+    // } else if (type === "yearly") {
+    //   query += `WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') IN (:list_month) `;
+    // }
 
     if (type === "monthly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
+       query += ` WHERE TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
+      // queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY-MM') <= :endDate `;
     } else if (type === "yearly") {
-      query += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
-      queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate`;
+      query += ` WHERE TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate `;
+      // queryTable += `AND TO_CHAR(trx_porto.tanggal, 'YYYY') >= :startDate AND TO_CHAR(trx_porto.tanggal, 'YYYY') <= :endDate`;
     }
 
     if (issuer !== "all") {
-      query += `AND mst_issuer.id = :issuer `;
+      query += ` AND mst_issuer.id = :issuer `;
     }
     if (custody !== "all") {
-      query += `AND mst_bank_custody.id = :custody `;
+      query += ` AND mst_bank_custody.id = :custody `;
     }
-    query += `GROUP BY mst_issuer.nama, mst_issuer.warna, mst_bank_custody.nama ${list_group}
+    query += ` GROUP BY mst_issuer.nama, mst_issuer.warna, mst_bank_custody.nama ${list_group}
     ORDER BY mst_issuer.nama ASC;`;
 
     const data = await db.sequelize.query(query, {
