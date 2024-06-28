@@ -200,6 +200,7 @@ const deposito = async (req, res) => {
       tenor: tenor,
       custody: custody,
       kepemilikan: kepemilikan,
+      pengelolaan: pengelolaan,
     };
 
     const data = await db.sequelize.query(query, {
@@ -340,6 +341,7 @@ const obligasi = async (req, res) => {
       tenor: tenor,
       custody: custody,
       kepemilikan: kepemilikan,
+      pengelolaan: pengelolaan,
     };
 
     const data = await db.sequelize.query(query, {
