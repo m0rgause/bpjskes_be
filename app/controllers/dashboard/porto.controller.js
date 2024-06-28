@@ -44,7 +44,7 @@ const summary = async (req, res) => {
     }
     query += ` GROUP BY trx_porto.tipe
     ORDER BY trx_porto.tipe ASC`;
-    
+
     const options = {
       replacements: {
         // list_month: list_period,
@@ -466,7 +466,6 @@ const uploadExcel = async (req, res) => {
         tanggal: moment(date).format("YYYY-MM-DD"),
       });
 
-
       let validationStatus = true;
       let index = 0;
       for (const row of dataXLS) {
@@ -542,7 +541,7 @@ const uploadExcel = async (req, res) => {
               kode: row.Tenor,
               nama: row.Tenor,
               // tipe: row.Tipe,
-              tipe: 'deposito,obligasi,sbn,sbi',
+              tipe: "deposito,obligasi,sbn,sbi",
               urutan: urutanTenor,
             });
             data.tenor.id.push(mst_tenor_id);
@@ -774,73 +773,108 @@ const uploadExcel = async (req, res) => {
           row.LGD = row.LGD || 0;
           row.PD = row.PD || 0;
 
-          let checkPorto = await db.trxPorto.findOne({
+          await db.trxPorto.destroy({
             where: {
-              tipe: row.Tipe?.toLowerCase() || null,
-              mst_issuer_id: mst_issuer_id,
               tanggal: date,
-              nominal: row.Nominal,
             },
           });
-          if (checkPorto) {
-            trx_porto_id = checkPorto.id;
-            await db.trxPorto.update(
-              {
-                unique_id: row.UniqueID,
-                no_security: row.NoSecurity,
-                start_date: row.IssuedDate,
-                end_date: row.MaturityDate,
-                interest_date: row.InterestDate,
-                sisa_tenor: row.SisaTenor,
-                rate: row.Rate,
-                pd: row.PD,
-                lgd: row.LGD,
-                ecl: row.ECL,
-                mst_tenor_id: mst_tenor_id,
-                mst_pengelolaan_id: mst_pengelolaan_id,
-                mst_kbmi_id: mst_kbmi_id,
-                mst_kepemilikan_id: mst_kepemilikan_id,
-                mst_bank_custody_id: bankCustody.mst_bank_custody_id,
-                updated_at: moment().format("YYYY-MM-DD HH:mm:ss"),
-                trx_porto_file_id: trx_porto_file_id,
-              },
-              {
-                where: {
-                  id: trx_porto_id,
-                },
-                transaction: t,
-              }
-            );
-          } else {
-            trx_porto_id = uuidv4();
-            await db.trxPorto.create(
-              {
-                id: trx_porto_id,
-                tipe: row.Tipe?.toLowerCase() || null,
-                unique_id: row.UniqueID,
-                no_security: row.NoSecurity,
-                start_date: row.IssuedDate,
-                end_date: row.MaturityDate,
-                interest_date: row.InterestDate,
-                nominal: row.Nominal,
-                sisa_tenor: row.SisaTenor,
-                rate: row.Rate,
-                pd: row.PD,
-                lgd: row.LGD,
-                ecl: row.ECL,
-                mst_issuer_id: mst_issuer_id,
-                mst_tenor_id: mst_tenor_id,
-                mst_pengelolaan_id: mst_pengelolaan_id,
-                mst_kbmi_id: mst_kbmi_id,
-                mst_kepemilikan_id: mst_kepemilikan_id,
-                mst_bank_custody_id: bankCustody.mst_bank_custody_id,
-                created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
-                trx_porto_file_id: trx_porto_file_id,
-                tanggal: date,
-              },
-              { transaction: t }
-            );
-          }
+
+          trx_porto_id = uuidv4();
+          await db.trxPorto.create(
+            {
+              id: trx_porto_id,
+              tipe: row.Tipe?.toLowerCase() || null,
+              unique_id: row.UniqueID,
+              no_security: row.NoSecurity,
+              start_date: row.IssuedDate,
+              end_date: row.MaturityDate,
+              interest_date: row.InterestDate,
+              nominal: row.Nominal,
+              sisa_tenor: row.SisaTenor,
+              rate: row.Rate,
+              pd: row.PD,
+              lgd: row.LGD,
+              ecl: row.ECL,
+              mst_issuer_id: mst_issuer_id,
+              mst_tenor_id: mst_tenor_id,
+              mst_pengelolaan_id: mst_pengelolaan_id,
+              mst_kbmi_id: mst_kbmi_id,
+              mst_kepemilikan_id: mst_kepemilikan_id,
+              mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+              created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+              trx_porto_file_id: trx_porto_file_id,
+              tanggal: date,
+            },
+            { transaction: t }
+          );
+
+          // let checkPorto = await db.trxPorto.findOne({
+          //   where: {
+          //     tipe: row.Tipe?.toLowerCase() || null,
+          //     mst_issuer_id: mst_issuer_id,
+          //     tanggal: date,
+          //     nominal: row.Nominal,
+          //   },
+          // });
+          // if (checkPorto) {
+          //   trx_porto_id = checkPorto.id;
+          //   await db.trxPorto.update(
+          //     {
+          //       unique_id: row.UniqueID,
+          //       no_security: row.NoSecurity,
+          //       start_date: row.IssuedDate,
+          //       end_date: row.MaturityDate,
+          //       interest_date: row.InterestDate,
+          //       sisa_tenor: row.SisaTenor,
+          //       rate: row.Rate,
+          //       pd: row.PD,
+          //       lgd: row.LGD,
+          //       ecl: row.ECL,
+          //       mst_tenor_id: mst_tenor_id,
+          //       mst_pengelolaan_id: mst_pengelolaan_id,
+          //       mst_kbmi_id: mst_kbmi_id,
+          //       mst_kepemilikan_id: mst_kepemilikan_id,
+          //       mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+          //       updated_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+          //       trx_porto_file_id: trx_porto_file_id,
+          //     },
+          //     {
+          //       where: {
+          //         id: trx_porto_id,
+          //       },
+          //       transaction: t,
+          //     }
+          //   );
+          // } else {
+          //   trx_porto_id = uuidv4();
+          //   await db.trxPorto.create(
+          //     {
+          //       id: trx_porto_id,
+          //       tipe: row.Tipe?.toLowerCase() || null,
+          //       unique_id: row.UniqueID,
+          //       no_security: row.NoSecurity,
+          //       start_date: row.IssuedDate,
+          //       end_date: row.MaturityDate,
+          //       interest_date: row.InterestDate,
+          //       nominal: row.Nominal,
+          //       sisa_tenor: row.SisaTenor,
+          //       rate: row.Rate,
+          //       pd: row.PD,
+          //       lgd: row.LGD,
+          //       ecl: row.ECL,
+          //       mst_issuer_id: mst_issuer_id,
+          //       mst_tenor_id: mst_tenor_id,
+          //       mst_pengelolaan_id: mst_pengelolaan_id,
+          //       mst_kbmi_id: mst_kbmi_id,
+          //       mst_kepemilikan_id: mst_kepemilikan_id,
+          //       mst_bank_custody_id: bankCustody.mst_bank_custody_id,
+          //       created_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+          //       trx_porto_file_id: trx_porto_file_id,
+          //       tanggal: date,
+          //     },
+          //     { transaction: t }
+          //   );
+          // }
         }
         await db.trxPortoFileData.create({
           id: uuidv4(),
